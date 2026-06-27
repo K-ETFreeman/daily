@@ -6,6 +6,7 @@ import { compareRow, rowEmoji } from './lib/compare';
 import { Search } from './components/Search';
 import { GuessGrid } from './components/GuessGrid';
 import { UnitIcon } from './components/UnitIcon';
+import { Ambient } from './components/Ambient';
 
 const STORE_KEY = 'faf-unitdle';
 
@@ -74,7 +75,8 @@ export default function App() {
 
   return (
     <div className="page">
-      <header className="hero">
+      <Ambient />
+      <header className="hero anim-rise">
         <span className="label text-amber">// Supreme Commander: Forged Alliance</span>
         <h1 className="display title">
           FAF<span className="text-amber">Unitdle</span>
@@ -93,7 +95,7 @@ export default function App() {
       </header>
 
       {!solved && (
-        <div className="searchbar">
+        <div className="searchbar anim-rise d1">
           <Search pool={pool} onPick={onPick} />
         </div>
       )}
