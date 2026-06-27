@@ -5,6 +5,7 @@ import { dailyIndex, todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown 
 import { compareRow, rowEmoji } from './lib/compare';
 import { Search } from './components/Search';
 import { GuessGrid } from './components/GuessGrid';
+import { UnitIcon } from './components/UnitIcon';
 
 const STORE_KEY = 'faf-unitdle';
 
@@ -125,13 +126,16 @@ function WinCard({
   return (
     <div className="wincard">
       <div className="wincard__top">
-        <span className="label text-signal">// Identified</span>
-        <h2 className="heading" style={{ borderColor: FACTION_COLOR[answer.faction] }}>
-          {answer.name}
-        </h2>
-        <p className="muted">
-          {answer.faction} · {answer.tech} · {answer.desc}
-        </p>
+        <UnitIcon unit={answer} size={72} />
+        <div>
+          <span className="label text-signal">// Identified</span>
+          <h2 className="heading" style={{ borderColor: FACTION_COLOR[answer.faction] }}>
+            {answer.name}
+          </h2>
+          <p className="muted">
+            {answer.faction} · {answer.tech} · {answer.desc}
+          </p>
+        </div>
       </div>
       <p className="mono win-line">
         Solved in <span className="text-signal">{guesses}</span> guess{guesses === 1 ? '' : 'es'}.

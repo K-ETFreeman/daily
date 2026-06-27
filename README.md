@@ -7,6 +7,8 @@ any base-faction unit; the grid reveals which attributes match.
 - **Faction · Tech · Unit/Building · Domain · Weapon · Produces · Role · Mass · HP · Build · Abilities**
 - 🟩 exact match · 🟨 partial / close · 🟥 no · ↑/↓ answer is higher / lower
 - 286 base-faction units (Aeon/UEF/Cybran/Seraphim). **Nomads excluded.**
+- Unit build-icons are hotlinked from the [FAForever/UnitDB](https://github.com/FAForever/UnitDB)
+  repo via the jsDelivr CDN (with a faction-colored fallback), so no images are bundled.
 - Fully client-side — no backend, no accounts. Daily answer is a deterministic
   function of the date.
 

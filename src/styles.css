@@ -138,9 +138,14 @@ body {
 .cell--miss { background: var(--panel-2); border-color: var(--line); color: var(--text-dim); }
 .cell__arrow { font-size: 1.05rem; font-weight: 800; line-height: 1; color: var(--text); }
 
-.cell--unit { align-items: flex-start; justify-content: center; text-align: left; border-left-width: 3px; background: var(--panel); color: var(--text); }
-.cell__name { font-family: var(--f-display); font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.02em; }
-.cell__sub { font-size: 0.62rem; color: var(--text-dim); }
+.cell--unit { flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; text-align: left; border-left-width: 3px; background: var(--panel); color: var(--text); }
+.cell__txt { display: flex; flex-direction: column; min-width: 0; }
+.cell__name { font-family: var(--f-display); font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell__sub { font-size: 0.62rem; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- unit icon (hotlinked build portrait) ---------- */
+.uicon { flex: none; border: 1px solid var(--line-2); background: #05080f; object-fit: contain; image-rendering: auto; }
+.uicon--ph { display: inline-flex; align-items: center; justify-content: center; font-family: var(--f-display); font-weight: 800; font-size: 1rem; }
 
 /* ---------- win card ---------- */
 .wincard {
@@ -149,6 +154,7 @@ body {
   box-shadow: 0 0 26px rgba(173, 255, 47, 0.14); padding: 18px 20px;
   clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
 }
+.wincard__top { display: flex; align-items: center; gap: 14px; }
 .wincard__top h2 { font-size: 1.8rem; border-left: 4px solid var(--signal); padding-left: 10px; margin-top: 4px; }
 .win-line { font-size: 0.95rem; }
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Unit } from '../lib/units';
-import { FACTION_COLOR } from '../lib/units';
+import { UnitIcon } from './UnitIcon';
 
 interface Props {
   pool: Unit[];
@@ -73,7 +73,7 @@ export function Search({ pool, disabled, onPick }: Props) {
               onMouseEnter={() => setActive(i)}
               onClick={() => pick(u)}
             >
-              <span className="search__dot" style={{ background: FACTION_COLOR[u.faction] }} />
+              <UnitIcon unit={u} size={28} />
               <span className="search__name">{u.name}</span>
               <span className="search__desc">{u.tech} · {u.desc}</span>
             </button>
