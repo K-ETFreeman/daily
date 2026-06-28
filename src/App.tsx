@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { UNITS, FACTION_COLOR, findById } from './lib/units';
+import { Share2, Check } from 'lucide-react';
+import { UNITS, findById } from './lib/units';
 import type { Unit } from './lib/units';
 import { dailyIndex, todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown } from './lib/daily';
 import { compareRow, rowEmoji } from './lib/compare';
 import { Search } from './components/Search';
 import { GuessGrid } from './components/GuessGrid';
 import { UnitIcon } from './components/UnitIcon';
-import { Ambient } from './components/Ambient';
 
 const STORE_KEY = 'faf-unitdle';
 
@@ -36,7 +36,6 @@ export default function App() {
     () => initial.guesses.map(findById).filter((u): u is Unit => !!u)
   );
   const solved = guesses.some((g) => g.id === answer.id);
-  const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -61,12 +60,74 @@ export default function App() {
     [solved]
   );
 
-  function share() {
-    const lines = guesses.map((g) => rowEmoji(compareRow(g, answer)));
+  return (
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:py-14">
+        {/* header */}
+        <header className="border-b border-neutral-800 pb-5">
+          <h1 className="font-mono text-xl font-semibold uppercase tracking-[0.2em] text-neutral-100">
+            FAF <span className="text-accent">Unitdle</span>
+          </h1>
+          <p className="mt-1.5 text-sm text-neutral-500">Identify the daily Forged Alliance unit.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-widest text-neutral-500">
+            <span>Puzzle #{puzzleNumber()}</span>
+            <span className="text-neutral-700">/</span>
+            <span>{UNITS.length} units</span>
+            <span className="text-neutral-700">/</span>
+            <span>{guesses.length} {guesses.length === 1 ? 'guess' : 'guesses'}</span>
+          </div>
+        </header>
+
+        {/* input / win */}
+        <div className="mt-7">
+          {solved ? (
+            <WinCard answer={answer} guesses={guesses} now={now} />
+          ) : (
+            <Search pool={pool} onPick={onPick} />
+          )}
+        </div>
+
+        {/* legend */}
+        {guesses.length > 0 && (
+          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px] uppercase tracking-widest text-neutral-500">
+            <Legend className="bg-emerald-500/[0.12] text-emerald-300" label="Match" />
+            <Legend className="bg-amber-500/[0.12] text-amber-300" label="Partial" />
+            <Legend className="bg-rose-500/[0.1] text-rose-300" label="Miss" />
+            <span className="text-neutral-600">↑ / ↓ answer is higher / lower</span>
+          </div>
+        )}
+
+        {/* guesses */}
+        <div className="mt-3">
+          <GuessGrid guesses={guesses} answer={answer} />
+        </div>
+
+        <footer className="mt-14 border-t border-neutral-800 pt-4 font-mono text-[10px] uppercase tracking-widest text-neutral-600">
+          {UNITS.length} base-faction units · Nomads excluded · resets 00:00 UTC
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function Legend({ className, label }: { className: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className={`inline-block h-3 w-3 border border-white/10 ${className}`} />
+      {label}
+    </span>
+  );
+}
+
+function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now: number }) {
+  const [copied, setCopied] = useState(false);
+  const left = msUntilNextUTCDay(new Date(now));
+  const count = guesses.length;
+
+  function onShare() {
+    const grid = guesses.map((g) => rowEmoji(compareRow(g, answer))).join('\n');
     const text =
-      `FAF Unitdle #${puzzleNumber()} — ${guesses.length} guess${guesses.length === 1 ? '' : 'es'}\n` +
-      lines.join('\n') +
-      `\n${location.origin}`;
+      `FAF Unitdle #${puzzleNumber()} — ${count} ${count === 1 ? 'guess' : 'guesses'}\n${grid}\n${location.origin}`;
     navigator.clipboard?.writeText(text).then(
       () => { setCopied(true); setTimeout(() => setCopied(false), 2000); },
       () => {}
@@ -74,79 +135,29 @@ export default function App() {
   }
 
   return (
-    <div className="page">
-      <Ambient />
-      <header className="hero anim-rise">
-        <span className="label text-amber">// Supreme Commander: Forged Alliance</span>
-        <h1 className="display title">
-          FAF<span className="text-amber">Unitdle</span>
-        </h1>
-        <p className="muted sub">
-          One mystery unit each day. Guess any unit — the grid tells you which attributes match.{' '}
-          <strong className="text-signal">Green</strong> = match,{' '}
-          <strong style={{ color: 'var(--amber)' }}>amber</strong> = partial / close,{' '}
-          <strong className="text-alert">red</strong> = no. ↑/↓ = answer is higher / lower.
-        </p>
-        <div className="row gap wrap">
-          <span className="chip">PUZZLE #{puzzleNumber()}</span>
-          <span className="chip chip--amber">{UNITS.length} UNITS</span>
-          <span className="chip">{guesses.length} GUESSES</span>
-        </div>
-      </header>
-
-      {!solved && (
-        <div className="searchbar anim-rise d1">
-          <Search pool={pool} onPick={onPick} />
-        </div>
-      )}
-
-      {solved && <WinCard answer={answer} guesses={guesses.length} now={now} onShare={share} copied={copied} />}
-
-      <GuessGrid guesses={guesses} answer={answer} />
-
-      <footer className="foot muted">
-        Unit data from the FAF unit database · {UNITS.length} base-faction units (Nomads excluded) · resets at 00:00 UTC
-      </footer>
-    </div>
-  );
-}
-
-function WinCard({
-  answer,
-  guesses,
-  now,
-  onShare,
-  copied,
-}: {
-  answer: Unit;
-  guesses: number;
-  now: number;
-  onShare: () => void;
-  copied: boolean;
-}) {
-  const left = msUntilNextUTCDay(new Date(now));
-  return (
-    <div className="wincard">
-      <div className="wincard__top">
-        <UnitIcon unit={answer} size={72} />
-        <div>
-          <span className="label text-signal">// Identified</span>
-          <h2 className="heading" style={{ borderColor: FACTION_COLOR[answer.faction] }}>
-            {answer.name}
-          </h2>
-          <p className="muted">
+    <div className="border border-neutral-800 bg-neutral-900/40">
+      <div className="flex items-center gap-4 border-b border-neutral-800 p-5">
+        <UnitIcon unit={answer} size={84} />
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-emerald-400">Identified</p>
+          <h2 className="mt-1 truncate text-2xl font-semibold text-neutral-100">{answer.name}</h2>
+          <p className="mt-0.5 truncate font-mono text-xs uppercase tracking-wide text-neutral-500">
             {answer.faction} · {answer.tech} · {answer.desc}
           </p>
         </div>
       </div>
-      <p className="mono win-line">
-        Solved in <span className="text-signal">{guesses}</span> guess{guesses === 1 ? '' : 'es'}.
-      </p>
-      <div className="row gap wrap">
-        <button className="btn btn--primary" onClick={onShare}>
-          {copied ? 'Copied ✓' : '⤴ Share result'}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-5">
+        <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
+          Solved in <span className="text-emerald-300">{count}</span> {count === 1 ? 'guess' : 'guesses'}
+          <span className="ml-3 text-neutral-600">next in {formatCountdown(left)}</span>
+        </p>
+        <button
+          onClick={onShare}
+          className="inline-flex items-center gap-2 bg-neutral-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-neutral-950 transition-colors hover:bg-white"
+        >
+          {copied ? <Check className="h-4 w-4" strokeWidth={2} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}
+          {copied ? 'Copied' : 'Share result'}
         </button>
-        <span className="chip">Next unit in {formatCountdown(left)}</span>
       </div>
     </div>
   );

@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-neutral-950 text-neutral-200 font-sans antialiased;
+  }
+  ::selection {
+    @apply bg-accent text-neutral-950;
+  }
+  /* thin, low-contrast scrollbars to match the flat aesthetic */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #404040 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #404040;
+  }
+}

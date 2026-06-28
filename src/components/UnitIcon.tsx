@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import type { Unit } from '../lib/units';
-import { FACTION_COLOR, iconUrl } from '../lib/units';
+import { iconUrl } from '../lib/units';
 
 interface Props {
   unit: Unit;
   size?: number;
+  className?: string;
 }
 
-export function UnitIcon({ unit, size = 40 }: Props) {
+// Flat, sharp-cornered unit portrait with a neutral fallback (no glow).
+export function UnitIcon({ unit, size = 40, className = '' }: Props) {
   const [err, setErr] = useState(false);
-  const color = FACTION_COLOR[unit.faction];
+  const base = `shrink-0 border border-neutral-800 bg-neutral-900 object-contain ${className}`;
   if (err) {
     return (
       <span
-        className="uicon uicon--ph"
-        style={{ width: size, height: size, borderColor: color, color }}
+        className={`${base} grid place-items-center font-mono text-neutral-500`}
+        style={{ width: size, height: size, fontSize: size * 0.4 }}
         aria-hidden
       >
         {unit.faction[0]}
@@ -23,14 +25,13 @@ export function UnitIcon({ unit, size = 40 }: Props) {
   }
   return (
     <img
-      className="uicon"
+      className={base}
       src={iconUrl(unit.id)}
       alt=""
       width={size}
       height={size}
       loading="lazy"
       onError={() => setErr(true)}
-      style={{ borderColor: color }}
     />
   );
 }
