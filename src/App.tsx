@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Check } from 'lucide-react';
+import { Share2, Check, Clock } from 'lucide-react';
 import { UNITS, findById } from './lib/units';
 import type { Unit } from './lib/units';
 import { dailyIndex, todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown } from './lib/daily';
-import { compareRow, rowEmoji } from './lib/compare';
 import { Search } from './components/Search';
 import { GuessGrid } from './components/GuessGrid';
 import { UnitIcon } from './components/UnitIcon';
@@ -90,9 +89,9 @@ export default function App() {
         {/* legend */}
         {guesses.length > 0 && (
           <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px] uppercase tracking-widest text-neutral-400">
-            <Legend className="bg-emerald-600/40" label="Match" />
-            <Legend className="bg-amber-500/40" label="Partial" />
-            <Legend className="bg-surface2" label="Miss" />
+            <Legend className="border-emerald-500/70" label="Match" />
+            <Legend className="border-amber-500/70" label="Partial" />
+            <Legend className="border-red-500/55" label="Miss" />
             <span className="text-neutral-500">↑ / ↓ answer is higher / lower</span>
           </div>
         )}
@@ -103,7 +102,7 @@ export default function App() {
         </div>
 
         <footer className="mt-14 border-t border-line pt-4 font-mono text-[10px] uppercase tracking-widest text-neutral-600">
-          {UNITS.length} base-faction units · Nomads excluded · resets 00:00 UTC
+          {UNITS.length} units · resets 00:00 UTC
         </footer>
       </div>
     </div>
@@ -113,7 +112,7 @@ export default function App() {
 function Legend({ className, label }: { className: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={`inline-block h-3 w-3 border border-line ${className}`} />
+      <span className={`inline-block h-3 w-3 border-2 bg-transparent ${className}`} />
       {label}
     </span>
   );
@@ -125,9 +124,8 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
   const count = guesses.length;
 
   function onShare() {
-    const grid = guesses.map((g) => rowEmoji(compareRow(g, answer))).join('\n');
     const text =
-      `FAF Unitdle #${puzzleNumber()} — ${count} ${count === 1 ? 'guess' : 'guesses'}\n${grid}\n${location.origin}`;
+      `FAF Unitdle #${puzzleNumber()} — solved in ${count} ${count === 1 ? 'try' : 'tries'}\n${location.origin}`;
     navigator.clipboard?.writeText(text).then(
       () => { setCopied(true); setTimeout(() => setCopied(false), 2000); },
       () => {}
@@ -146,11 +144,16 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
           </p>
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 p-5">
-        <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
-          Solved in <span className="text-emerald-300">{count}</span> {count === 1 ? 'guess' : 'guesses'}
-          <span className="ml-3 text-neutral-600">next in {formatCountdown(left)}</span>
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
+            Solved in <span className="text-emerald-300">{count}</span> {count === 1 ? 'try' : 'tries'}
+          </p>
+          <span className="inline-flex items-center gap-2 border border-accent/70 px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-widest text-accent">
+            <Clock className="h-3.5 w-3.5" strokeWidth={2} />
+            Next unit {formatCountdown(left)}
+          </span>
+        </div>
         <button
           onClick={onShare}
           className="inline-flex items-center gap-2 bg-neutral-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-neutral-950 transition-colors hover:bg-white"

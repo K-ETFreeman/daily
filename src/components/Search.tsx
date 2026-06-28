@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search as SearchIcon } from 'lucide-react';
 import type { Unit } from '../lib/units';
-import { FACTION_COLOR } from '../lib/units';
+import { UnitIcon } from './UnitIcon';
 
 interface Props {
   pool: Unit[];
@@ -87,7 +87,7 @@ export function Search({ pool, disabled, onPick }: Props) {
               onMouseEnter={() => setActive(i)}
               onClick={() => pick(u)}
             >
-              <span className="h-3 w-3 shrink-0" style={{ background: FACTION_COLOR[u.faction] }} aria-hidden />
+              <UnitIcon unit={u} size={26} />
               <span className="min-w-0 flex-1 truncate text-sm text-neutral-100">{u.name}</span>
               <span className="hidden shrink-0 font-mono text-[11px] uppercase tracking-wide text-neutral-500 sm:block">
                 {u.tech} · {u.desc}

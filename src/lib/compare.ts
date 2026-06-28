@@ -27,7 +27,7 @@ export const COLUMNS: Column[] = [
   { key: 'role', label: 'Role', kind: 'cat' },
   { key: 'mass', label: 'Mass', kind: 'num' },
   { key: 'hp', label: 'HP', kind: 'num' },
-  { key: 'buildTime', label: 'Build', kind: 'num' },
+  { key: 'buildTime', label: 'Build Time', kind: 'num' },
   { key: 'abilities', label: 'Abilities', kind: 'set' },
 ];
 
