@@ -11,7 +11,7 @@ interface Props {
 // Flat, sharp-cornered unit portrait with a neutral fallback (no glow).
 export function UnitIcon({ unit, size = 40, className = '' }: Props) {
   const [err, setErr] = useState(false);
-  const base = `shrink-0 border border-neutral-800 bg-neutral-900 object-contain ${className}`;
+  const base = `shrink-0 border border-line bg-surface2 object-contain ${className}`;
   if (err) {
     return (
       <span

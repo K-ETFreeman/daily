@@ -64,7 +64,7 @@ export default function App() {
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-10 sm:py-14">
         {/* header */}
-        <header className="border-b border-neutral-800 pb-5">
+        <header className="border-b border-line pb-5">
           <h1 className="font-mono text-xl font-semibold uppercase tracking-[0.2em] text-neutral-100">
             FAF <span className="text-accent">Unitdle</span>
           </h1>
@@ -89,11 +89,11 @@ export default function App() {
 
         {/* legend */}
         {guesses.length > 0 && (
-          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px] uppercase tracking-widest text-neutral-500">
-            <Legend className="bg-emerald-500/[0.12] text-emerald-300" label="Match" />
-            <Legend className="bg-amber-500/[0.12] text-amber-300" label="Partial" />
-            <Legend className="bg-rose-500/[0.1] text-rose-300" label="Miss" />
-            <span className="text-neutral-600">↑ / ↓ answer is higher / lower</span>
+          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px] uppercase tracking-widest text-neutral-400">
+            <Legend className="bg-emerald-600/40" label="Match" />
+            <Legend className="bg-amber-500/40" label="Partial" />
+            <Legend className="bg-surface2" label="Miss" />
+            <span className="text-neutral-500">↑ / ↓ answer is higher / lower</span>
           </div>
         )}
 
@@ -102,7 +102,7 @@ export default function App() {
           <GuessGrid guesses={guesses} answer={answer} />
         </div>
 
-        <footer className="mt-14 border-t border-neutral-800 pt-4 font-mono text-[10px] uppercase tracking-widest text-neutral-600">
+        <footer className="mt-14 border-t border-line pt-4 font-mono text-[10px] uppercase tracking-widest text-neutral-600">
           {UNITS.length} base-faction units · Nomads excluded · resets 00:00 UTC
         </footer>
       </div>
@@ -113,7 +113,7 @@ export default function App() {
 function Legend({ className, label }: { className: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={`inline-block h-3 w-3 border border-white/10 ${className}`} />
+      <span className={`inline-block h-3 w-3 border border-line ${className}`} />
       {label}
     </span>
   );
@@ -135,8 +135,8 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
   }
 
   return (
-    <div className="border border-neutral-800 bg-neutral-900/40">
-      <div className="flex items-center gap-4 border-b border-neutral-800 p-5">
+    <div className="border border-line bg-surface">
+      <div className="flex items-center gap-4 border-b border-line p-5">
         <UnitIcon unit={answer} size={84} />
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-widest text-emerald-400">Identified</p>

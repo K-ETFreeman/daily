@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search as SearchIcon } from 'lucide-react';
 import type { Unit } from '../lib/units';
-import { UnitIcon } from './UnitIcon';
+import { FACTION_COLOR } from '../lib/units';
 
 interface Props {
   pool: Unit[];
@@ -15,9 +15,8 @@ export function Search({ pool, disabled, onPick }: Props) {
   const [active, setActive] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  // Rank: name-prefix > name-substring > desc-prefix > desc-substring.
-  // Searching the description is what surfaces e.g. every "Bomber" across
-  // factions; the list is generous (40) and scrolls, so nothing gets clipped.
+  // Rank name-prefix > name-substring > desc-prefix > desc-substring, so typing
+  // a role like "bomber" surfaces every faction's bombers. Generous + scrolls.
   const matches = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return [];
@@ -62,10 +61,10 @@ export function Search({ pool, disabled, onPick }: Props) {
 
   return (
     <div className="relative" ref={boxRef}>
-      <div className="flex items-center border border-neutral-800 bg-neutral-900 focus-within:border-accent">
-        <SearchIcon className="ml-3 h-4 w-4 shrink-0 text-neutral-600" strokeWidth={1.5} />
+      <div className="flex items-center border border-line bg-surface focus-within:border-accent">
+        <SearchIcon className="ml-3 h-4 w-4 shrink-0 text-neutral-500" strokeWidth={1.5} />
         <input
-          className="w-full bg-transparent px-3 py-3 text-[15px] text-neutral-100 placeholder:text-neutral-600 focus:outline-none"
+          className="w-full bg-transparent px-3 py-3.5 text-[15px] text-neutral-100 placeholder:text-neutral-500 focus:outline-none"
           placeholder={disabled ? 'Solved — back tomorrow' : 'Type a unit name or role…'}
           value={q}
           disabled={disabled}
@@ -78,20 +77,20 @@ export function Search({ pool, disabled, onPick }: Props) {
       </div>
 
       {open && matches.length > 0 && (
-        <div className="absolute left-0 right-0 z-20 mt-1 max-h-80 overflow-y-auto border border-neutral-800 bg-neutral-900">
+        <div className="absolute left-0 right-0 z-20 mt-1 max-h-80 overflow-y-auto border border-line bg-surface">
           {matches.map((u, i) => (
             <button
               key={u.id}
-              className={`flex w-full items-center gap-3 border-b border-neutral-800/70 px-3 py-2 text-left last:border-b-0 ${
-                i === active ? 'bg-neutral-800' : 'hover:bg-neutral-800/50'
+              className={`flex w-full items-center gap-3 border-b border-line/60 px-3 py-2.5 text-left last:border-b-0 ${
+                i === active ? 'bg-surface2' : 'hover:bg-surface2/60'
               }`}
               onMouseEnter={() => setActive(i)}
               onClick={() => pick(u)}
             >
-              <UnitIcon unit={u} size={26} />
+              <span className="h-3 w-3 shrink-0" style={{ background: FACTION_COLOR[u.faction] }} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-sm text-neutral-100">{u.name}</span>
-              <span className="shrink-0 font-mono text-[11px] uppercase tracking-wide text-neutral-500">
-                {u.faction} · {u.tech} · {u.desc}
+              <span className="hidden shrink-0 font-mono text-[11px] uppercase tracking-wide text-neutral-500 sm:block">
+                {u.tech} · {u.desc}
               </span>
             </button>
           ))}
