@@ -30,7 +30,7 @@ export function UnitIcon({ unit, size = 40, className = '' }: Props) {
       alt=""
       width={size}
       height={size}
-      loading="lazy"
+      decoding="async"
       onError={() => setErr(true)}
     />
   );

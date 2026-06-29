@@ -13,7 +13,7 @@ export interface Unit {
   domain: string; // Land | Air | Naval | Amphibious
   weapon: string[];
   produces: string[];
-  role: string;
+  role: string[];
   mass: number;
   energy: number;
   hp: number;

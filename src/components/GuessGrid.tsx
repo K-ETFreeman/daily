@@ -10,7 +10,10 @@ interface Props {
   answer: Unit;
 }
 
-const COLS = 'minmax(168px,1.5fr) repeat(11, minmax(0,1fr))';
+// Unit + 6 single-value cols + Role (wider) + 3 numeric + Abilities (widest),
+// matching the COLUMNS order. Multi-value columns get more room.
+const COLS =
+  'minmax(168px,1.5fr) repeat(6, minmax(0,1fr)) minmax(0,1.4fr) repeat(3, minmax(0,1fr)) minmax(0,2.2fr)';
 
 // Desktop cells: vibrant, with a glow on hits/partials so correct answers pop;
 // misses are charcoal-slate (muted crimson) and recede.
@@ -81,7 +84,7 @@ export function GuessGrid({ guesses, answer }: Props) {
                     key={i}
                     className={`flex items-center justify-center gap-1 px-1.5 py-2.5 text-center text-[12px] font-bold leading-tight ${CELL[cell.state]}`}
                   >
-                    <span className="line-clamp-2">{cell.text}</span>
+                    <span className="break-words">{cell.text}</span>
                     <Arrow cell={cell} />
                   </div>
                 ))}
@@ -110,7 +113,7 @@ export function GuessGrid({ guesses, answer }: Props) {
                   <div key={String(col.key)} className={`flex flex-col gap-0.5 px-3 py-2 ${MCELL[cells[i].state]}`}>
                     <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">{col.label}</span>
                     <span className="flex items-center gap-1 text-[13px] font-bold leading-tight">
-                      <span className="line-clamp-2">{cells[i].text}</span>
+                      <span className="break-words">{cells[i].text}</span>
                       <Arrow cell={cells[i]} />
                     </span>
                   </div>
