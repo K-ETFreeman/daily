@@ -61,7 +61,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:py-14">
+      <div className="mx-auto max-w-[1240px] px-4 py-10 sm:py-14">
         {/* header */}
         <header className="border-b border-line pb-5">
           <h1 className="font-mono text-xl font-semibold uppercase tracking-[0.2em] text-neutral-100">
@@ -89,9 +89,9 @@ export default function App() {
         {/* legend */}
         {guesses.length > 0 && (
           <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px] uppercase tracking-widest text-neutral-400">
-            <Legend className="border-emerald-500/70" label="Match" />
-            <Legend className="border-amber-500/70" label="Partial" />
-            <Legend className="border-red-500/55" label="Miss" />
+            <Legend className="bg-emerald-500/20 ring-1 ring-inset ring-emerald-400/50" label="Match" />
+            <Legend className="bg-amber-500/20 ring-1 ring-inset ring-amber-400/50" label="Partial" />
+            <Legend className="bg-surface2 ring-1 ring-inset ring-line" label="Miss" />
             <span className="text-neutral-500">↑ / ↓ answer is higher / lower</span>
           </div>
         )}
@@ -112,7 +112,7 @@ export default function App() {
 function Legend({ className, label }: { className: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={`inline-block h-3 w-3 border-2 bg-transparent ${className}`} />
+      <span className={`inline-block h-3 w-3 ${className}`} />
       {label}
     </span>
   );

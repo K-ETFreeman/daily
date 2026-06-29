@@ -4,11 +4,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        accent: '#e0703a', // restrained orange, used sparingly
-        canvas: '#181a20', // page background — dark, lifted off black
-        surface: '#22252f', // cards / inputs
-        surface2: '#2b2f3a', // tiles / hovered rows
-        line: '#3c404c', // visible hairline borders
+        accent: '#f47b3f', // warm orange — brand + timer, used sparingly
+        canvas: '#0b0f17', // deep slate / midnight page
+        surface: '#121826', // cards / inputs (midnight blue)
+        surface2: '#1a2233', // cells / charcoal-slate (miss)
+        line: '#2a3346', // bluish hairline borders
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -16,12 +16,12 @@ export default {
       },
       keyframes: {
         riseIn: {
-          from: { opacity: '0', transform: 'translateY(10px)' },
+          from: { opacity: '0', transform: 'translateY(4px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
       },
       animation: {
-        rise: 'riseIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
+        rise: 'riseIn 0.25s ease-out both',
       },
     },
   },
