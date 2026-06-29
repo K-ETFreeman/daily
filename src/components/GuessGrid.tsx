@@ -36,6 +36,28 @@ function Arrow({ cell }: { cell: Cell }) {
   return null;
 }
 
+// Multi-value cells render each value as its own stacked tag (no commas);
+// single-value cells render the text + an optional higher/lower arrow.
+function CellBody({ cell }: { cell: Cell }) {
+  if (cell.list) {
+    return (
+      <div className="flex w-full flex-col gap-1">
+        {cell.list.map((item, i) => (
+          <span key={i} className="break-words bg-black/25 px-1 py-0.5 text-[11px] font-semibold leading-tight">
+            {item}
+          </span>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <span className="flex items-center justify-center gap-1 break-words">
+      {cell.text}
+      <Arrow cell={cell} />
+    </span>
+  );
+}
+
 function UnitHead({ g, size }: { g: Unit; size: number }) {
   return (
     <>
@@ -82,10 +104,9 @@ export function GuessGrid({ guesses, answer }: Props) {
                 {cells.map((cell, i) => (
                   <div
                     key={i}
-                    className={`flex items-center justify-center gap-1 px-1.5 py-2.5 text-center text-[12px] font-bold leading-tight ${CELL[cell.state]}`}
+                    className={`flex items-center justify-center px-1.5 py-2 text-center text-[12px] font-bold leading-tight ${CELL[cell.state]}`}
                   >
-                    <span className="break-words">{cell.text}</span>
-                    <Arrow cell={cell} />
+                    <CellBody cell={cell} />
                   </div>
                 ))}
               </div>
@@ -110,12 +131,11 @@ export function GuessGrid({ guesses, answer }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-3">
                 {COLUMNS.map((col, i) => (
-                  <div key={String(col.key)} className={`flex flex-col gap-0.5 px-3 py-2 ${MCELL[cells[i].state]}`}>
+                  <div key={String(col.key)} className={`flex flex-col gap-1 px-3 py-2 ${MCELL[cells[i].state]}`}>
                     <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">{col.label}</span>
-                    <span className="flex items-center gap-1 text-[13px] font-bold leading-tight">
-                      <span className="break-words">{cells[i].text}</span>
-                      <Arrow cell={cells[i]} />
-                    </span>
+                    <div className="text-[13px] font-bold leading-tight">
+                      <CellBody cell={cells[i]} />
+                    </div>
                   </div>
                 ))}
               </div>

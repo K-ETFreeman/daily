@@ -6,6 +6,8 @@ export interface Cell {
   state: CellState;
   text: string;
   arrow?: '↑' | '↓';
+  /** For multi-value (set) columns: the individual values, rendered as tags. */
+  list?: string[];
 }
 
 type ColumnKind = 'cat' | 'set' | 'num' | 'tech';
@@ -49,11 +51,11 @@ function compareSet(g: string[], a: string[]): Cell {
   let allIn = sameSize;
   gs.forEach((x) => { if (!as.has(x)) allIn = false; });
   if (allIn && (gs.size > 0 || (g.includes('None') && a.includes('None')))) {
-    return { state: 'hit', text: setText(g) };
+    return { state: 'hit', text: setText(g), list: g };
   }
   let overlap = false;
   gs.forEach((x) => { if (as.has(x)) overlap = true; });
-  return { state: overlap ? 'partial' : 'miss', text: setText(g) };
+  return { state: overlap ? 'partial' : 'miss', text: setText(g), list: g };
 }
 
 function compareNum(g: number, a: number): Cell {
