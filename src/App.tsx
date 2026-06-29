@@ -138,7 +138,7 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
         <UnitIcon unit={answer} size={84} />
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-widest text-emerald-400">Identified</p>
-          <h2 className="mt-1 truncate text-2xl font-semibold text-neutral-100">{answer.name}</h2>
+          <h2 className="mt-1 truncate text-xl font-semibold text-neutral-100 sm:text-2xl">{answer.name}</h2>
           <p className="mt-0.5 truncate font-mono text-xs uppercase tracking-wide text-neutral-500">
             {answer.faction} · {answer.tech} · {answer.desc}
           </p>

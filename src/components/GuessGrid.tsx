@@ -10,26 +10,40 @@ interface Props {
   answer: Unit;
 }
 
-// [unit] + 11 attribute columns. minmax(0,1fr) lets cells shrink to fit the
-// container so there's no horizontal scroll on desktop (mobile falls back to
-// the scroll wrapper via min-width below).
 const COLS = 'minmax(168px,1.5fr) repeat(11, minmax(0,1fr))';
 
-// Vibrant, distinct states. Hits/partials glow so the correct answers pop;
-// misses are charcoal-slate (muted crimson text) and recede.
+// Desktop cells: vibrant, with a glow on hits/partials so correct answers pop;
+// misses are charcoal-slate (muted crimson) and recede.
 const CELL: Record<Cell['state'], string> = {
   hit: 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/50 shadow-[0_0_16px_-4px_rgba(16,185,129,0.6)]',
   partial: 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/50 shadow-[0_0_16px_-4px_rgba(245,158,11,0.55)]',
   miss: 'bg-surface2 text-rose-200/55 ring-1 ring-inset ring-line',
 };
 
-function ValueCell({ cell }: { cell: Cell }) {
+// Mobile tiles: same hues, separated by the hairline grid (no ring needed).
+const MCELL: Record<Cell['state'], string> = {
+  hit: 'bg-emerald-500/15 text-emerald-300',
+  partial: 'bg-amber-500/15 text-amber-300',
+  miss: 'bg-surface2 text-rose-200/60',
+};
+
+function Arrow({ cell }: { cell: Cell }) {
+  if (cell.arrow === '↑') return <ChevronUp className="h-3.5 w-3.5 shrink-0" strokeWidth={3} />;
+  if (cell.arrow === '↓') return <ChevronDown className="h-3.5 w-3.5 shrink-0" strokeWidth={3} />;
+  return null;
+}
+
+function UnitHead({ g, size }: { g: Unit; size: number }) {
   return (
-    <div className={`flex items-center justify-center gap-1 px-1.5 py-2.5 text-center text-[12px] font-bold leading-tight ${CELL[cell.state]}`}>
-      <span className="line-clamp-2">{cell.text}</span>
-      {cell.arrow === '↑' && <ChevronUp className="h-3.5 w-3.5 shrink-0" strokeWidth={3} />}
-      {cell.arrow === '↓' && <ChevronDown className="h-3.5 w-3.5 shrink-0" strokeWidth={3} />}
-    </div>
+    <>
+      <UnitIcon unit={g} size={size} />
+      <div className="min-w-0">
+        <div className="truncate text-[13px] font-bold text-white">{g.name}</div>
+        {g.desc && g.desc !== g.name && (
+          <div className="truncate font-mono text-[10px] uppercase tracking-wide text-slate-500">{g.desc}</div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -38,43 +52,74 @@ export function GuessGrid({ guesses, answer }: Props) {
   const rows = [...guesses].reverse(); // newest first
 
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[940px] space-y-2">
-        {/* header */}
-        <div className="grid items-end gap-2 px-1" style={{ gridTemplateColumns: COLS }}>
-          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">Unit</span>
-          {COLUMNS.map((c) => (
-            <span key={String(c.key)} className="text-center font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">
-              {c.label}
-            </span>
-          ))}
-        </div>
+    <>
+      {/* ---------- desktop / wide: dense single-row table ---------- */}
+      <div className="hidden overflow-x-auto lg:block">
+        <div className="min-w-[940px] space-y-2">
+          <div className="grid items-end gap-2 px-1" style={{ gridTemplateColumns: COLS }}>
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">Unit</span>
+            {COLUMNS.map((c) => (
+              <span key={String(c.key)} className="text-center font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                {c.label}
+              </span>
+            ))}
+          </div>
 
-        {/* rows */}
+          {rows.map((g, idx) => {
+            const cells = compareRow(g, answer);
+            const newest = idx === 0;
+            return (
+              <div key={g.id} className="grid animate-rise items-stretch gap-2" style={{ gridTemplateColumns: COLS }}>
+                <div
+                  className={`flex items-center gap-2.5 bg-surface px-3 py-2 ring-1 ring-inset ${newest ? 'ring-accent/50' : 'ring-line'}`}
+                  style={{ borderLeft: `3px solid ${FACTION_COLOR[g.faction]}` }}
+                >
+                  <UnitHead g={g} size={34} />
+                </div>
+                {cells.map((cell, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-center gap-1 px-1.5 py-2.5 text-center text-[12px] font-bold leading-tight ${CELL[cell.state]}`}
+                  >
+                    <span className="line-clamp-2">{cell.text}</span>
+                    <Arrow cell={cell} />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ---------- mobile / narrow: per-guess card + tile grid ---------- */}
+      <div className="space-y-3 lg:hidden">
         {rows.map((g, idx) => {
           const cells = compareRow(g, answer);
           const newest = idx === 0;
           return (
-            <div key={g.id} className="grid animate-rise items-stretch gap-2" style={{ gridTemplateColumns: COLS }}>
-              <div
-                className={`flex items-center gap-2.5 bg-surface px-3 py-2 ring-1 ring-inset ${newest ? 'ring-accent/50' : 'ring-line'}`}
-                style={{ borderLeft: `3px solid ${FACTION_COLOR[g.faction]}` }}
-              >
-                <UnitIcon unit={g} size={34} />
-                <div className="min-w-0">
-                  <div className="truncate text-[13px] font-bold text-white">{g.name}</div>
-                  {g.desc && g.desc !== g.name && (
-                    <div className="truncate font-mono text-[10px] uppercase tracking-wide text-slate-500">{g.desc}</div>
-                  )}
-                </div>
+            <div
+              key={g.id}
+              className={`animate-rise border bg-surface ${newest ? 'border-accent/50' : 'border-line'}`}
+              style={{ borderLeft: `3px solid ${FACTION_COLOR[g.faction]}` }}
+            >
+              <div className="flex items-center gap-3 border-b border-line px-3 py-2.5">
+                <UnitHead g={g} size={40} />
               </div>
-              {cells.map((cell, i) => (
-                <ValueCell key={i} cell={cell} />
-              ))}
+              <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-3">
+                {COLUMNS.map((col, i) => (
+                  <div key={String(col.key)} className={`flex flex-col gap-0.5 px-3 py-2 ${MCELL[cells[i].state]}`}>
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">{col.label}</span>
+                    <span className="flex items-center gap-1 text-[13px] font-bold leading-tight">
+                      <span className="line-clamp-2">{cells[i].text}</span>
+                      <Arrow cell={cells[i]} />
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}
       </div>
-    </div>
+    </>
   );
 }
