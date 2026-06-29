@@ -29,6 +29,8 @@ export function Search({ pool, disabled, onPick }: Props) {
       else if (name.includes(s)) rank = 1;
       else if (desc.startsWith(s)) rank = 2;
       else if (desc.includes(s)) rank = 3;
+      // stem fallback: "fabrication" still finds "Fabricator", etc.
+      else if (s.length >= 5 && (name.includes(s.slice(0, 5)) || desc.includes(s.slice(0, 5)))) rank = 4;
       if (rank >= 0) scored.push({ u, rank });
     }
     scored.sort((a, b) => a.rank - b.rank || a.u.name.localeCompare(b.u.name));
@@ -90,7 +92,7 @@ export function Search({ pool, disabled, onPick }: Props) {
               <UnitIcon unit={u} size={26} />
               <span className="min-w-0 flex-1 truncate text-sm text-neutral-100">{u.name}</span>
               <span className="hidden shrink-0 font-mono text-[11px] uppercase tracking-wide text-neutral-500 sm:block">
-                {u.tech} · {u.desc}
+                {u.tech}{u.desc && u.desc !== u.name ? ` · ${u.desc}` : ''}
               </span>
             </button>
           ))}

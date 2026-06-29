@@ -63,7 +63,9 @@ export function GuessGrid({ guesses, answer }: Props) {
                 <UnitIcon unit={g} size={34} />
                 <div className="min-w-0">
                   <div className="truncate text-[13px] font-bold text-white">{g.name}</div>
-                  <div className="truncate font-mono text-[10px] uppercase tracking-wide text-slate-500">{g.desc}</div>
+                  {g.desc && g.desc !== g.name && (
+                    <div className="truncate font-mono text-[10px] uppercase tracking-wide text-slate-500">{g.desc}</div>
+                  )}
                 </div>
               </div>
               {cells.map((cell, i) => (

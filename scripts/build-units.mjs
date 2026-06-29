@@ -15,7 +15,7 @@ const units = raw.units;
 const has = (u, tag) => (u.Categories || []).includes(tag);
 
 function techOf(u) {
-  if (has(u, 'EXPERIMENTAL')) return ['Experimental', 4];
+  if (has(u, 'EXPERIMENTAL')) return ['EXP', 4];
   if (has(u, 'COMMAND') || has(u, 'SUBCOMMANDER')) return ['Commander', 5];
   if (has(u, 'TECH3')) return ['T3', 3];
   if (has(u, 'TECH2')) return ['T2', 2];
@@ -23,9 +23,18 @@ function techOf(u) {
   return [null, 0];
 }
 
+// Movement layer, by precedence: Air > Naval > Hover > Amphibious > Land.
+// Captures the gameplay-relevant distinction (e.g. an Aeon hover tank reads
+// "Hover", not just "Land"). Movement abilities therefore live here, not in the
+// Abilities column.
 function domainOf(u) {
   const i = (u.General && u.General.Icon) || '';
-  return { air: 'Air', land: 'Land', sea: 'Naval', amph: 'Amphibious' }[i] || null;
+  if (i === 'air') return 'Air';
+  if (i === 'sea') return 'Naval';
+  const a = (u.Display && u.Display.Abilities) || [];
+  if (a.includes('Hover')) return 'Hover';
+  if (i === 'amph' || a.includes('Amphibious') || a.includes('Aquatic')) return 'Amphibious';
+  return 'Land';
 }
 
 function weaponOf(u) {
@@ -59,9 +68,11 @@ function roleOf(u) {
 }
 
 // Abilities we surface as a guessable column (clean, recognizable subset).
+// Movement traits (Hover/Amphibious/Aquatic) are intentionally excluded — they
+// live in the Domain column now.
 const ABILITY_WHITELIST = new Set([
   'Shield Dome', 'Personal Shield', 'Stealth Field', 'Personal Stealth', 'Cloaking',
-  'Hover', 'Amphibious', 'Submersible', 'Aquatic', 'Transport', 'Carrier',
+  'Submersible', 'Transport', 'Carrier',
   'Sonar', 'Radar', 'Omni Sensor', 'Jamming', 'Torpedoes', 'Anti-Air',
   'Tactical Missile Defense', 'Strategic Missile Defense', 'Torpedo Defense',
   'EMP Weapon', 'Suicide Weapon', 'Sacrifice', 'Massive', 'Volatile',
@@ -79,16 +90,18 @@ const pool = units
       u.General &&
       u.General.FactionName &&
       u.General.FactionName !== 'Nomads' &&
-      u.General.UnitName &&
+      (u.General.UnitName || u.Description) &&
       has(u, 'SELECTABLE') &&
       (has(u, 'MOBILE') || has(u, 'STRUCTURE')) &&
-      techOf(u)[0]
+      techOf(u)[0] &&
+      !has(u, 'WALL') &&
+      !/wall section/i.test(u.Description || '')
   )
   .map((u) => {
     const [tech, techRank] = techOf(u);
     return {
       id: u.Id,
-      name: u.General.UnitName,
+      name: u.General.UnitName || u.Description,
       desc: u.Description || '',
       faction: u.General.FactionName,
       tech,
@@ -105,13 +118,18 @@ const pool = units
       abilities: abilitiesOf(u),
     };
   })
-  // De-dupe by name (some units share a display name across variants); keep the
-  // costlier/canonical one so e.g. upgraded structures don't double up.
+  // Sort costliest first so de-dupe keeps the canonical variant.
   .sort((a, b) => b.mass - a.mass);
 
-const byName = new Map();
-for (const u of pool) if (!byName.has(u.name)) byName.set(u.name, u);
-const out = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+// De-dupe by name + faction + tech: collapses true duplicates (e.g. a factory
+// and its HQ variant at the same tier) without dropping a faction's or a tier's
+// distinct unit that happens to share a display name.
+const byKey = new Map();
+for (const u of pool) {
+  const key = `${u.name}|${u.faction}|${u.tech}`;
+  if (!byKey.has(key)) byKey.set(key, u);
+}
+const out = [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
 
 writeFileSync(join(here, '..', 'src', 'data', 'units.json'), JSON.stringify(out, null, 0) + '\n');
 
