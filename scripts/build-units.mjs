@@ -74,7 +74,8 @@ function rolesOf(u, weapons) {
   if (isCarrier) r.add('Combat'); // carriers (incl. Atlantis) count as combat
   if (isFactory) r.add('Factory');
   if (isTransport) r.add('Transport');
-  if (has(u, 'ENGINEER') || has(u, 'CONSTRUCTION')) r.add('Engineer');
+  // True engineers + commanders only — NOT factories (which also have CONSTRUCTION).
+  if (has(u, 'ENGINEER') || has(u, 'COMMAND') || has(u, 'SUBCOMMANDER')) r.add('Engineer');
   if (has(u, 'STRUCTURE') && has(u, 'DEFENSE')) r.add('Defense');
   if (has(u, 'ECONOMIC')) r.add('Economy');
   if (has(u, 'INTELLIGENCE')) r.add('Intel');
@@ -97,8 +98,10 @@ function abilitiesOf(u) {
   const set = new Set(a.filter((x) => ABILITY_WHITELIST.has(x)));
   // derived: reclaim + assist (build/repair) — added wherever the unit can do it
   if (has(u, 'RECLAIM') || has(u, 'COMMAND') || has(u, 'SUBCOMMANDER')) set.add('Reclaim');
+  // Assist = can help-build/repair. Engineers, commanders, and units with an
+  // engineering/repair ability (e.g. Mantis). NOT factories.
   if (
-    has(u, 'ENGINEER') || has(u, 'CONSTRUCTION') || has(u, 'COMMAND') || has(u, 'SUBCOMMANDER') ||
+    has(u, 'ENGINEER') || has(u, 'COMMAND') || has(u, 'SUBCOMMANDER') ||
     a.includes('Engineering Suite') || a.includes('Repairs')
   ) {
     set.add('Assist');
