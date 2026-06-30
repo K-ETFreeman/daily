@@ -41,9 +41,9 @@ function Arrow({ cell }: { cell: Cell }) {
 function CellBody({ cell }: { cell: Cell }) {
   if (cell.list) {
     return (
-      <div className="flex w-full flex-col gap-1">
+      <div className="flex w-full flex-col gap-0.5">
         {cell.list.map((item, i) => (
-          <span key={i} className="break-words bg-black/25 px-1 py-0.5 text-[11px] font-semibold leading-tight">
+          <span key={i} className="whitespace-normal text-[10px] font-semibold leading-tight">
             {item}
           </span>
         ))}

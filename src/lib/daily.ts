@@ -1,8 +1,11 @@
 // Deterministic daily puzzle: every player gets the same unit for a given UTC
 // date. No backend needed — the answer is a pure function of the date.
 
-// Day the puzzle counter starts from (UTC). Puzzle #1 = this day.
-const EPOCH = Date.UTC(2025, 0, 1);
+// The puzzle NUMBER is just a sequential daily counter (#1 = this day, then +1
+// each UTC day). It is intentionally decoupled from the answer: the unit is a
+// random hash of the date (see dailyIndex), so the number reveals nothing about
+// which unit it is and you can't tell whether a unit has appeared before.
+const EPOCH = Date.UTC(2026, 5, 28); // 2026-06-28 → ~#3 around launch
 const DAY_MS = 86_400_000;
 
 function utcMidnight(d: Date): number {
