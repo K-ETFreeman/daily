@@ -175,19 +175,16 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
         await nav.share({ files: [file], text: caption });
         setFlash('Shared');
       } else {
-        // Desktop → copy the image so it can be pasted straight into Discord.
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-          setFlash('Image copied — paste it into Discord');
-        } catch {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = file.name;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 4000);
-          setFlash('SPOILER image saved — drag it into Discord');
-        }
+        // Desktop → save the SPOILER_-named file. Dragging it into Discord makes
+        // Discord auto-blur it. (A pasted clipboard image can't carry a filename,
+        // so Discord never auto-spoilers a paste — the file is the only way.)
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name; // SPOILER_faf-daily-N.png
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        setFlash('Spoiler image saved — drag it into Discord to post it blurred');
       }
       setTimeout(() => setFlash(null), 5000);
     } catch {
