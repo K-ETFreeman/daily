@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Check, Clock, Download } from 'lucide-react';
+import { Share2, Check, Clock } from 'lucide-react';
 import { UNITS, findById } from './lib/units';
 import type { Unit } from './lib/units';
 import { dailyIndex, todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown } from './lib/daily';
@@ -153,20 +153,13 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
   const left = msUntilNextUTCDay(new Date(now));
   const count = guesses.length;
   const [busy, setBusy] = useState(false);
-  const [flash, setFlash] = useState<'copied' | 'saved' | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-  function download(blob: Blob) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    // SPOILER_ prefix makes Discord auto-blur the uploaded image
-    a.download = `SPOILER_faf-daily-${puzzleNumber()}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  }
+  const caption =
+    `⚠️ SPOILERS AHEAD ⚠️\nFAF Daily #${puzzleNumber()} — solved in ${count} ${count === 1 ? 'try' : 'tries'}\n${location.origin}`;
 
   async function onShare() {
     setBusy(true);
@@ -175,27 +168,34 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
       const blob = await buildShareImage(guesses, answer);
       if (!blob) return;
       setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        setFlash('copied');
-      } catch {
-        download(blob);
-        setFlash('saved');
-      }
-      setTimeout(() => setFlash(null), 3000);
-    } finally {
-      setBusy(false);
-    }
-  }
 
-  async function onDownload() {
-    setBusy(true);
-    try {
-      const blob = await buildShareImage(guesses, answer);
-      if (blob) {
-        setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
-        download(blob);
+      // SPOILER_ filename → Discord auto-blurs the uploaded image.
+      const file = new File([blob], `SPOILER_faf-daily-${puzzleNumber()}.png`, { type: 'image/png' });
+      const nav = navigator as Navigator & {
+        canShare?: (d: unknown) => boolean;
+        share?: (d: unknown) => Promise<void>;
+      };
+
+      // Always put the warning + link on the clipboard as text too.
+      try { await navigator.clipboard.writeText(caption); } catch { /* ignore */ }
+
+      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+        // Native share sheet: hands Discord the spoiler-named file + the text.
+        await nav.share({ files: [file], text: caption });
+        setFlash('Shared');
+      } else {
+        // Fallback (e.g. Firefox desktop): text is copied; save the SPOILER file to drag into Discord.
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        setFlash('Text copied · SPOILER image saved — drag it into Discord');
       }
+      setTimeout(() => setFlash(null), 5000);
+    } catch {
+      /* user cancelled the share sheet, or an error — ignore */
     } finally {
       setBusy(false);
     }
@@ -224,32 +224,27 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
             Next unit {formatCountdown(left)}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onShare}
-            disabled={busy}
-            className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-950 transition-colors hover:bg-white disabled:opacity-60"
-          >
-            {flash === 'copied' ? <Check className="h-4 w-4" strokeWidth={2} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}
-            {busy ? 'Rendering…' : flash === 'copied' ? 'Image copied' : flash === 'saved' ? 'Saved' : 'Share image'}
-          </button>
-          <button
-            onClick={onDownload}
-            disabled={busy}
-            title="Download the image (Discord blurs it as a spoiler automatically)"
-            className="inline-flex items-center gap-2 border border-line px-3 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-300 transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
-          >
-            <Download className="h-4 w-4" strokeWidth={2} />
-          </button>
-        </div>
+        <button
+          onClick={onShare}
+          disabled={busy}
+          className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-950 transition-colors hover:bg-white disabled:opacity-60"
+        >
+          {flash === 'Shared' ? <Check className="h-4 w-4" strokeWidth={2} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}
+          {busy ? 'Rendering…' : 'Share result'}
+        </button>
       </div>
+
+      {flash && (
+        <p className="px-5 pb-1 font-mono text-[11px] text-emerald-300">{flash}</p>
+      )}
 
       {preview && (
         <div className="border-t border-line p-5">
           <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-slate-500">
-            Share image (answer hidden) — paste into Discord
+            Share card (answer hidden) — the warning + link are copied as text too
           </p>
-          <img src={preview} alt="Share result" className="w-full max-w-[520px] border border-line" />
+          <img src={preview} alt="Share result" className="mb-3 w-full max-w-[520px] border border-line" />
+          <pre className="max-w-[520px] whitespace-pre-wrap break-words border border-line bg-canvas p-3 font-mono text-[11px] text-slate-300">{caption}</pre>
         </div>
       )}
     </div>
