@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Check, Clock } from 'lucide-react';
+import { Share2, Clock } from 'lucide-react';
 import { UNITS, findById } from './lib/units';
 import type { Unit } from './lib/units';
 import { dailyIndex, todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown } from './lib/daily';
@@ -154,32 +154,36 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
   const count = guesses.length;
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
-  const caption =
-    `⚠️ SPOILERS AHEAD ⚠️\nFAF Daily #${puzzleNumber()} — solved in ${count} ${count === 1 ? 'try' : 'tries'}\n${location.origin}`;
+  function captionFor(spoilerFree: boolean) {
+    const base = `FAF Daily #${puzzleNumber()} — solved in ${count} ${count === 1 ? 'try' : 'tries'}. Try it yourself: ${location.origin}`;
+    return spoilerFree ? base : `⚠️ Spoilers ⚠️ ${base}`;
+  }
 
-  async function onShare() {
+  async function share(spoilerFree: boolean) {
     setBusy(true);
     setFlash(null);
     try {
-      const blob = await buildShareImage(guesses, answer);
+      const blob = await buildShareImage(guesses, answer, { spoilerFree });
       if (!blob) return;
-      const file = new File([blob], `SPOILER_faf-daily-${puzzleNumber()}.png`, { type: 'image/png' });
+      const name = `${spoilerFree ? '' : 'SPOILER_'}faf-daily-${puzzleNumber()}.png`;
+      const file = new File([blob], name, { type: 'image/png' });
       const nav = navigator as Navigator & {
         canShare?: (d: unknown) => boolean;
         share?: (d: unknown) => Promise<void>;
       };
-      // Touch devices → native share sheet: hands Discord the spoiler-named file
-      // + the caption text in one tap (Discord auto-blurs it there).
+      // Touch devices → native share sheet (Discord auto-blurs the SPOILER_ file).
       const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
       if (coarse && nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
-        await nav.share({ files: [file], text: caption });
+        await nav.share({ files: [file], text: captionFor(spoilerFree) });
         setFlash('Shared');
       } else {
-        // Desktop → copy the image to the clipboard (no download). A pasted image
-        // can't be auto-spoilered by Discord, so paste it and click Discord's
-        // "Mark as spoiler" toggle on the attachment before sending.
+        // Desktop → copy the image to the clipboard (no download).
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        setFlash('Image copied — paste into Discord, then click “Mark as spoiler”');
+        setFlash(
+          spoilerFree
+            ? 'Copied — paste it into Discord'
+            : 'Copied — paste into Discord, then click “Mark as spoiler”'
+        );
       }
       setTimeout(() => setFlash(null), 5000);
     } catch {
@@ -212,14 +216,26 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
             Next unit {formatCountdown(left)}
           </span>
         </div>
-        <button
-          onClick={onShare}
-          disabled={busy}
-          className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-950 transition-colors hover:bg-white disabled:opacity-60"
-        >
-          {flash ? <Check className="h-4 w-4" strokeWidth={2} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}
-          {busy ? 'Rendering…' : 'Share result'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => share(true)}
+            disabled={busy}
+            title="Just the colored squares — reveals nothing"
+            className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-950 transition-colors hover:bg-white disabled:opacity-60"
+          >
+            <Share2 className="h-4 w-4" strokeWidth={2} />
+            {busy ? 'Rendering…' : 'Share (no spoilers)'}
+          </button>
+          <button
+            onClick={() => share(false)}
+            disabled={busy}
+            title="Shows your guessed units (answer hidden) — spoilers"
+            className="inline-flex items-center gap-2 border border-line px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-300 transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+          >
+            <Share2 className="h-4 w-4" strokeWidth={2} />
+            With guesses
+          </button>
+        </div>
       </div>
 
       {flash && <p className="px-5 pb-5 font-mono text-[11px] text-emerald-300">{flash}</p>}

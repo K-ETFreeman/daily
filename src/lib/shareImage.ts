@@ -7,15 +7,12 @@ import { puzzleNumber } from './daily';
 const C = {
   bg: '#0f131c',
   panel: '#1a2233',
-  line: '#2a3346',
   hit: '#34d399',
   partial: '#fbbf24',
   miss: '#38415a',
   text: '#e8eef7',
   dim: '#8a97ad',
   accent: '#f47b3f',
-  warnBg: 'rgba(244, 63, 94, 0.16)',
-  warn: '#fb7185',
 };
 
 function loadImg(src: string): Promise<HTMLImageElement | null> {
@@ -28,26 +25,37 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
+interface Opts {
+  /** Hide all unit identity — draw only the match squares (safe to post). */
+  spoilerFree?: boolean;
+}
+
 /**
- * Render the "how you got there" share card:
- *  - a baked-in SPOILER warning banner,
- *  - one row per guess (portrait + name + the 11 attribute-match squares),
- *  - the winning guess redacted so the answer itself is never shown.
+ * Render a share card of your run.
+ *  - default: one row per guess = portrait + name + 11 attribute-match squares,
+ *    with the winning guess redacted so the answer is never shown.
+ *  - spoilerFree: only the squares (no portraits, no names) — reveals nothing.
+ * Both carry a "try it yourself" + site link footer.
  */
-export async function buildShareImage(guesses: Unit[], answer: Unit): Promise<Blob | null> {
+export async function buildShareImage(
+  guesses: Unit[],
+  answer: Unit,
+  opts: Opts = {}
+): Promise<Blob | null> {
   try {
     await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
   } catch {
     /* fonts optional */
   }
 
+  const spoilerFree = !!opts.spoilerFree;
   const scale = 2;
   const W = 680;
-  const headerH = 92;
-  const rowH = 56;
-  const footerH = 52;
-  const H = headerH + guesses.length * rowH + footerH;
   const pad = 26;
+  const headerH = 92;
+  const rowH = spoilerFree ? 34 : 56;
+  const footerH = 54;
+  const H = headerH + guesses.length * rowH + footerH;
 
   const canvas = document.createElement('canvas');
   canvas.width = W * scale;
@@ -56,10 +64,12 @@ export async function buildShareImage(guesses: Unit[], answer: Unit): Promise<Bl
   if (!ctx) return null;
   ctx.scale(scale, scale);
 
-  // preload portraits (skip the winning guess — it stays hidden)
-  const imgs = await Promise.all(
-    guesses.map((g) => (g.id === answer.id ? Promise.resolve(null) : loadImg(iconUrl(g.id))))
-  );
+  // preload portraits only when we actually draw them
+  const imgs = spoilerFree
+    ? []
+    : await Promise.all(
+        guesses.map((g) => (g.id === answer.id ? Promise.resolve(null) : loadImg(iconUrl(g.id))))
+      );
 
   // background
   ctx.fillStyle = C.bg;
@@ -75,10 +85,10 @@ export async function buildShareImage(guesses: Unit[], answer: Unit): Promise<Bl
   ctx.fillText(`Solved in ${guesses.length} ${guesses.length === 1 ? 'try' : 'tries'}`, pad, 72);
 
   // rows
-  const sq = 15;
+  const sq = 16;
   const gap = 4;
   const squaresW = 11 * (sq + gap) - gap;
-  const squaresX = W - pad - squaresW;
+  const squaresX = spoilerFree ? pad + 32 : W - pad - squaresW;
 
   guesses.forEach((g, i) => {
     const y = headerH + i * rowH;
@@ -91,45 +101,56 @@ export async function buildShareImage(guesses: Unit[], answer: Unit): Promise<Bl
     ctx.textAlign = 'left';
     ctx.fillText(String(i + 1).padStart(2, '0'), pad, y + rowH / 2 + 4);
 
-    // portrait
-    const ps = 34;
-    const px = pad + 26;
-    const py = y + (rowH - ps) / 2;
-    ctx.fillStyle = C.panel;
-    ctx.fillRect(px, py, ps, ps);
-    if (win) {
-      ctx.strokeStyle = C.accent;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(px + 0.75, py + 0.75, ps - 1.5, ps - 1.5);
-      ctx.fillStyle = C.accent;
-      ctx.font = '800 20px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('?', px + ps / 2, py + ps / 2 + 7);
-      ctx.textAlign = 'left';
-    } else if (imgs[i]) {
-      ctx.drawImage(imgs[i] as HTMLImageElement, px, py, ps, ps);
-    } else {
-      ctx.fillStyle = FACTION_COLOR[g.faction];
-      ctx.fillRect(px, py, 3, ps);
+    if (!spoilerFree) {
+      // portrait
+      const ps = 34;
+      const px = pad + 26;
+      const py = y + (rowH - ps) / 2;
+      ctx.fillStyle = C.panel;
+      ctx.fillRect(px, py, ps, ps);
+      if (win) {
+        ctx.strokeStyle = C.accent;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(px + 0.75, py + 0.75, ps - 1.5, ps - 1.5);
+        ctx.fillStyle = C.accent;
+        ctx.font = '800 20px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('?', px + ps / 2, py + ps / 2 + 7);
+        ctx.textAlign = 'left';
+      } else if (imgs[i]) {
+        ctx.drawImage(imgs[i] as HTMLImageElement, px, py, ps, ps);
+      } else {
+        ctx.fillStyle = FACTION_COLOR[g.faction];
+        ctx.fillRect(px, py, 3, ps);
+      }
+      // name
+      ctx.font = '700 15px Inter, sans-serif';
+      ctx.fillStyle = win ? C.accent : C.text;
+      ctx.fillText(win ? '█████  (hidden)' : g.name, px + ps + 12, y + rowH / 2 + 5);
     }
 
-    // name
-    ctx.font = '700 15px Inter, sans-serif';
-    ctx.fillStyle = win ? C.accent : C.text;
-    ctx.fillText(win ? '█████  (hidden)' : g.name, px + ps + 12, y + rowH / 2 + 5);
-
-    // 11 attribute squares
+    // squares
     cells.forEach((c, j) => {
       ctx.fillStyle = c.state === 'hit' ? C.hit : c.state === 'partial' ? C.partial : C.miss;
       ctx.fillRect(squaresX + j * (sq + gap), y + (rowH - sq) / 2, sq, sq);
     });
   });
 
-  // footer
-  ctx.fillStyle = C.dim;
-  ctx.font = '600 12px "Martian Mono", monospace';
+  // footer — try it yourself + link
+  const host = (typeof location !== 'undefined' && location.host) || 'FAF Daily';
   ctx.textAlign = 'center';
-  ctx.fillText((typeof location !== 'undefined' && location.host) || 'FAF Daily', W / 2, H - 22);
+  ctx.font = '700 13px "Martian Mono", monospace';
+  ctx.fillStyle = C.accent;
+  const label = 'TRY IT YOURSELF  ·  ';
+  const labelW = ctx.measureText(label).width;
+  ctx.fillStyle = C.dim;
+  const hostW = ctx.measureText(host).width;
+  const startX = W / 2 - (labelW + hostW) / 2;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.accent;
+  ctx.fillText(label, startX, H - 22);
+  ctx.fillStyle = C.dim;
+  ctx.fillText(host, startX + labelW, H - 22);
 
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
 }
