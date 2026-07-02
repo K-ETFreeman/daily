@@ -1,4 +1,4 @@
-# FAF Unitdle
+# FAF Daily
 
 A daily "guess the unit" game for **Supreme Commander: Forged Alliance** — in the
 style of Wordle/Loldle. One mystery unit per day (same for everyone, UTC). Guess
@@ -31,4 +31,4 @@ Standalone static site served by nginx (its own port, separate from FAFGuessr):
 ```bash
 docker compose up -d --build   # serves on host :8081
 ```
-Point your edge reverse proxy (e.g. `unitdle.doodlepros.com` → `VM-IP:8081`) at it.
+Point your edge reverse proxy (e.g. `daily.replays.doodlepros.com` → `VM-IP:8081`) at it.

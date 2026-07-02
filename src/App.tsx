@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Check, Clock } from 'lucide-react';
+import { Share2, Check, Clock, Download } from 'lucide-react';
 import { UNITS, findById } from './lib/units';
 import type { Unit } from './lib/units';
 import { dailyIndex, todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown } from './lib/daily';
+import { buildShareImage } from './lib/shareImage';
 import { Search } from './components/Search';
 import { GuessGrid } from './components/GuessGrid';
 import { UnitIcon } from './components/UnitIcon';
 
-const STORE_KEY = 'faf-unitdle';
+const STORE_KEY = 'faf-daily';
+const DATA_URL = 'https://unitdb.faforever.com/';
 
 interface Saved {
   date: string;
@@ -17,7 +19,7 @@ interface Saved {
 
 function loadSaved(): Saved {
   try {
-    const raw = localStorage.getItem(STORE_KEY);
+    const raw = localStorage.getItem(STORE_KEY) ?? localStorage.getItem('faf-unitdle');
     if (raw) {
       const s = JSON.parse(raw) as Saved;
       if (s.date === todayKey()) return s;
@@ -59,23 +61,43 @@ export default function App() {
     [solved]
   );
 
+  const showIntro = !solved && guesses.length === 0;
+
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-[1240px] px-4 py-10 sm:py-14">
         {/* header */}
         <header className="border-b border-line pb-5">
-          <h1 className="font-mono text-xl font-semibold uppercase tracking-[0.2em] text-neutral-100">
-            FAF <span className="text-accent">Unitdle</span>
+          <h1 className="font-mono text-xl font-semibold uppercase tracking-[0.2em] text-slate-100">
+            FAF <span className="text-accent">Daily</span>
           </h1>
-          <p className="mt-1.5 text-sm text-neutral-500">Identify the daily Forged Alliance unit.</p>
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-widest text-neutral-500">
+          <p className="mt-1.5 text-sm text-slate-400">Guess the daily Forged Alliance unit.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-widest text-slate-500">
             <span>Puzzle #{puzzleNumber()}</span>
-            <span className="text-neutral-700">/</span>
+            <span className="text-slate-700">/</span>
             <span>{UNITS.length} units</span>
-            <span className="text-neutral-700">/</span>
+            <span className="text-slate-700">/</span>
             <span>{guesses.length} {guesses.length === 1 ? 'guess' : 'guesses'}</span>
           </div>
         </header>
+
+        {/* how to play (landing) */}
+        {showIntro && (
+          <section className="mt-6 border border-line bg-surface p-5">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent">How to play</p>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
+              A random Forged Alliance unit is picked every day. Type any unit to guess — each guess
+              reveals how it compares to today's unit across its stats.{' '}
+              <span className="font-semibold text-emerald-300">Green</span> = that attribute matches,{' '}
+              <span className="font-semibold text-amber-300">amber</span> = partial match, and{' '}
+              <span className="font-semibold text-slate-200">↑ / ↓</span> means the answer is higher / lower.
+              Use the clues to identify it in as few tries as possible.
+            </p>
+            <p className="mt-3 font-mono text-[11px] uppercase tracking-widest text-slate-500">
+              Search by name, role, or faction — e.g. “aeon bomber”, “t3 land factory”.
+            </p>
+          </section>
+        )}
 
         {/* input / win */}
         <div className="mt-7">
@@ -88,11 +110,11 @@ export default function App() {
 
         {/* legend */}
         {guesses.length > 0 && (
-          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px] uppercase tracking-widest text-neutral-400">
+          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px] uppercase tracking-widest text-slate-400">
             <Legend className="bg-emerald-500/20 ring-1 ring-inset ring-emerald-400/50" label="Match" />
             <Legend className="bg-amber-500/20 ring-1 ring-inset ring-amber-400/50" label="Partial" />
             <Legend className="bg-surface2 ring-1 ring-inset ring-line" label="Miss" />
-            <span className="text-neutral-500">↑ / ↓ answer is higher / lower</span>
+            <span className="text-slate-500">↑ / ↓ answer is higher / lower</span>
           </div>
         )}
 
@@ -101,8 +123,17 @@ export default function App() {
           <GuessGrid guesses={guesses} answer={answer} />
         </div>
 
-        <footer className="mt-14 border-t border-line pt-4 font-mono text-[10px] uppercase tracking-widest text-neutral-600">
-          {UNITS.length} units · resets 00:00 UTC
+        <footer className="mt-14 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-4 font-mono text-[10px] uppercase tracking-widest text-slate-600">
+          <span>{UNITS.length} units · resets 00:00 UTC</span>
+          <span className="text-slate-700">·</span>
+          <a
+            href={DATA_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-500 underline decoration-slate-700 underline-offset-2 transition-colors hover:text-accent"
+          >
+            Unit data &amp; icons from the FAF Unit Database ↗
+          </a>
         </footer>
       </div>
     </div>
@@ -119,17 +150,55 @@ function Legend({ className, label }: { className: string; label: string }) {
 }
 
 function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now: number }) {
-  const [copied, setCopied] = useState(false);
   const left = msUntilNextUTCDay(new Date(now));
   const count = guesses.length;
+  const [busy, setBusy] = useState(false);
+  const [flash, setFlash] = useState<'copied' | 'saved' | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
-  function onShare() {
-    const text =
-      `FAF Unitdle #${puzzleNumber()} — solved in ${count} ${count === 1 ? 'try' : 'tries'}\n${location.origin}`;
-    navigator.clipboard?.writeText(text).then(
-      () => { setCopied(true); setTimeout(() => setCopied(false), 2000); },
-      () => {}
-    );
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+
+  function download(blob: Blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // SPOILER_ prefix makes Discord auto-blur the uploaded image
+    a.download = `SPOILER_faf-daily-${puzzleNumber()}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  async function onShare() {
+    setBusy(true);
+    setFlash(null);
+    try {
+      const blob = await buildShareImage(guesses, answer);
+      if (!blob) return;
+      setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        setFlash('copied');
+      } catch {
+        download(blob);
+        setFlash('saved');
+      }
+      setTimeout(() => setFlash(null), 3000);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onDownload() {
+    setBusy(true);
+    try {
+      const blob = await buildShareImage(guesses, answer);
+      if (blob) {
+        setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
+        download(blob);
+      }
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -138,15 +207,16 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
         <UnitIcon unit={answer} size={84} />
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-widest text-emerald-400">Identified</p>
-          <h2 className="mt-1 truncate text-xl font-semibold text-neutral-100 sm:text-2xl">{answer.name}</h2>
-          <p className="mt-0.5 truncate font-mono text-xs uppercase tracking-wide text-neutral-500">
+          <h2 className="mt-1 truncate text-xl font-semibold text-slate-100 sm:text-2xl">{answer.name}</h2>
+          <p className="mt-0.5 truncate font-mono text-xs uppercase tracking-wide text-slate-500">
             {answer.faction} · {answer.tech} · {answer.desc}
           </p>
         </div>
       </div>
+
       <div className="flex flex-wrap items-center justify-between gap-4 p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
+          <p className="font-mono text-xs uppercase tracking-widest text-slate-400">
             Solved in <span className="text-emerald-300">{count}</span> {count === 1 ? 'try' : 'tries'}
           </p>
           <span className="inline-flex items-center gap-2 border border-accent/70 px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-widest text-accent">
@@ -154,14 +224,34 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
             Next unit {formatCountdown(left)}
           </span>
         </div>
-        <button
-          onClick={onShare}
-          className="inline-flex items-center gap-2 bg-neutral-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-neutral-950 transition-colors hover:bg-white"
-        >
-          {copied ? <Check className="h-4 w-4" strokeWidth={2} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}
-          {copied ? 'Copied' : 'Share result'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onShare}
+            disabled={busy}
+            className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-950 transition-colors hover:bg-white disabled:opacity-60"
+          >
+            {flash === 'copied' ? <Check className="h-4 w-4" strokeWidth={2} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}
+            {busy ? 'Rendering…' : flash === 'copied' ? 'Image copied' : flash === 'saved' ? 'Saved' : 'Share image'}
+          </button>
+          <button
+            onClick={onDownload}
+            disabled={busy}
+            title="Download the image (Discord blurs it as a spoiler automatically)"
+            className="inline-flex items-center gap-2 border border-line px-3 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-300 transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+          >
+            <Download className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </div>
       </div>
+
+      {preview && (
+        <div className="border-t border-line p-5">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-slate-500">
+            Share image (answer hidden) — paste into Discord
+          </p>
+          <img src={preview} alt="Share result" className="w-full max-w-[520px] border border-line" />
+        </div>
+      )}
     </div>
   );
 }
