@@ -154,10 +154,6 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
   const count = guesses.length;
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
-
   const caption =
     `⚠️ SPOILERS AHEAD ⚠️\nFAF Daily #${puzzleNumber()} — solved in ${count} ${count === 1 ? 'try' : 'tries'}\n${location.origin}`;
 
@@ -167,35 +163,35 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
     try {
       const blob = await buildShareImage(guesses, answer);
       if (!blob) return;
-      setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
-
-      // SPOILER_ filename → Discord auto-blurs the uploaded image.
       const file = new File([blob], `SPOILER_faf-daily-${puzzleNumber()}.png`, { type: 'image/png' });
       const nav = navigator as Navigator & {
         canShare?: (d: unknown) => boolean;
         share?: (d: unknown) => Promise<void>;
       };
-
-      // Always put the warning + link on the clipboard as text too.
-      try { await navigator.clipboard.writeText(caption); } catch { /* ignore */ }
-
-      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
-        // Native share sheet: hands Discord the spoiler-named file + the text.
+      // Touch devices → native share sheet: hands Discord the spoiler-named file
+      // + the caption text in one tap (Discord auto-blurs it there).
+      const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+      if (coarse && nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
         await nav.share({ files: [file], text: caption });
         setFlash('Shared');
       } else {
-        // Fallback (e.g. Firefox desktop): text is copied; save the SPOILER file to drag into Discord.
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
-        setFlash('Text copied · SPOILER image saved — drag it into Discord');
+        // Desktop → copy the image so it can be pasted straight into Discord.
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          setFlash('Image copied — paste it into Discord');
+        } catch {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = file.name;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 4000);
+          setFlash('SPOILER image saved — drag it into Discord');
+        }
       }
       setTimeout(() => setFlash(null), 5000);
     } catch {
-      /* user cancelled the share sheet, or an error — ignore */
+      /* cancelled or error — ignore */
     } finally {
       setBusy(false);
     }
@@ -229,24 +225,12 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
           disabled={busy}
           className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-950 transition-colors hover:bg-white disabled:opacity-60"
         >
-          {flash === 'Shared' ? <Check className="h-4 w-4" strokeWidth={2} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}
+          {flash ? <Check className="h-4 w-4" strokeWidth={2} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}
           {busy ? 'Rendering…' : 'Share result'}
         </button>
       </div>
 
-      {flash && (
-        <p className="px-5 pb-1 font-mono text-[11px] text-emerald-300">{flash}</p>
-      )}
-
-      {preview && (
-        <div className="border-t border-line p-5">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-slate-500">
-            Share card (answer hidden) — the warning + link are copied as text too
-          </p>
-          <img src={preview} alt="Share result" className="mb-3 w-full max-w-[520px] border border-line" />
-          <pre className="max-w-[520px] whitespace-pre-wrap break-words border border-line bg-canvas p-3 font-mono text-[11px] text-slate-300">{caption}</pre>
-        </div>
-      )}
+      {flash && <p className="px-5 pb-5 font-mono text-[11px] text-emerald-300">{flash}</p>}
     </div>
   );
 }

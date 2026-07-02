@@ -43,8 +43,7 @@ export async function buildShareImage(guesses: Unit[], answer: Unit): Promise<Bl
 
   const scale = 2;
   const W = 680;
-  const bannerH = 46;
-  const headerH = bannerH + 92;
+  const headerH = 92;
   const rowH = 56;
   const footerH = 52;
   const H = headerH + guesses.length * rowH + footerH;
@@ -66,26 +65,14 @@ export async function buildShareImage(guesses: Unit[], answer: Unit): Promise<Bl
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // spoiler banner
-  ctx.fillStyle = C.warnBg;
-  ctx.fillRect(0, 0, W, bannerH);
-  ctx.fillStyle = C.warn;
-  ctx.font = '800 19px Inter, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('⚠️  SPOILERS AHEAD  ⚠️', W / 2, bannerH / 2 + 7);
-
   // title
   ctx.textAlign = 'left';
   ctx.fillStyle = C.text;
   ctx.font = '800 28px "Martian Mono", monospace';
-  ctx.fillText(`FAF DAILY #${puzzleNumber()}`, pad, bannerH + 46);
+  ctx.fillText(`FAF DAILY #${puzzleNumber()}`, pad, 46);
   ctx.fillStyle = C.dim;
   ctx.font = '600 15px Inter, sans-serif';
-  ctx.fillText(
-    `Solved in ${guesses.length} ${guesses.length === 1 ? 'try' : 'tries'}`,
-    pad,
-    bannerH + 72
-  );
+  ctx.fillText(`Solved in ${guesses.length} ${guesses.length === 1 ? 'try' : 'tries'}`, pad, 72);
 
   // rows
   const sq = 15;
