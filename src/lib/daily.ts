@@ -32,23 +32,34 @@ function mulberry32(a: number): () => number {
   };
 }
 
-// Seeded daily permutation: within each full cycle of `poolLen` days every unit
-// comes up exactly once (no repeats), the distribution is uniform across
-// factions, and each cycle uses a different shuffle. Deterministic per UTC date
-// and decoupled from the (sequential) puzzle number.
+// How many days a unit must wait before it can be picked again. Prevents
+// near-term repeats without turning the schedule into a predictable full cycle.
+const AVOID_RECENT_DAYS = 90;
+
+// Deterministic daily pick with a recency window: each day picks a random unit
+// (seeded by the date) that hasn't been used in the last AVOID_RECENT_DAYS days.
+// Same for everyone, decoupled from the puzzle number. After the window a unit
+// can recur, so it's varied and not a fixed permutation. We replay from the
+// epoch to build the window (cheap — a few ms even years out).
 export function dailyIndex(poolLen: number, d = new Date()): number {
   const dayNumber = Math.floor((utcMidnight(d) - EPOCH) / DAY_MS);
-  const cycle = Math.floor(dayNumber / poolLen);
-  const pos = ((dayNumber % poolLen) + poolLen) % poolLen;
-  const rnd = mulberry32((0x9e3779b9 ^ cycle) >>> 0);
-  const order = Array.from({ length: poolLen }, (_, i) => i);
-  for (let i = poolLen - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    const tmp = order[i];
-    order[i] = order[j];
-    order[j] = tmp;
+  const window = Math.min(AVOID_RECENT_DAYS, poolLen - 1);
+  const recent: number[] = [];
+  const recentSet = new Set<number>();
+  let pick = 0;
+
+  for (let day = 0; day <= dayNumber; day++) {
+    const rnd = mulberry32((Math.imul(day + 1, 2654435761) ^ 0x9e3779b9) >>> 0);
+    pick = Math.floor(rnd() * poolLen);
+    // re-roll if it was used within the window (always resolves: window < pool)
+    for (let attempt = 0; attempt < 64 && recentSet.has(pick); attempt++) {
+      pick = Math.floor(rnd() * poolLen);
+    }
+    recent.push(pick);
+    recentSet.add(pick);
+    if (recent.length > window) recentSet.delete(recent.shift() as number);
   }
-  return order[pos];
+  return pick;
 }
 
 export function msUntilNextUTCDay(now = new Date()): number {
