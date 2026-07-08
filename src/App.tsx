@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Clock } from 'lucide-react';
+import { Share2, Clock, Copy } from 'lucide-react';
 import { UNITS, findById } from './lib/units';
 import type { Unit } from './lib/units';
 import { dailyIndex, todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown } from './lib/daily';
@@ -154,12 +154,9 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
   const count = guesses.length;
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
-  function captionFor(spoilerFree: boolean) {
-    const base = `FAF Daily #${puzzleNumber()} — solved in ${count} ${count === 1 ? 'try' : 'tries'}. Try it yourself: ${location.origin}`;
-    return spoilerFree ? base : `⚠️ Spoilers ⚠️ ${base}`;
-  }
+  const shareText = `I solved FAF Daily #${puzzleNumber()} in ${count} ${count === 1 ? 'try' : 'tries'} — try it yourself: ${location.origin}`;
 
-  async function share(spoilerFree: boolean) {
+  async function shareImg(spoilerFree: boolean) {
     setBusy(true);
     setFlash(null);
     try {
@@ -171,26 +168,41 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
         canShare?: (d: unknown) => boolean;
         share?: (d: unknown) => Promise<void>;
       };
-      // Touch devices → native share sheet (Discord auto-blurs the SPOILER_ file).
+      // Phones → native share sheet, image only (Discord auto-blurs the SPOILER_ file).
       const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
       if (coarse && nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
-        await nav.share({ files: [file], text: captionFor(spoilerFree) });
+        await nav.share({ files: [file] });
         setFlash('Shared');
       } else {
-        // Desktop → copy the image to the clipboard (no download).
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        setFlash(
-          spoilerFree
-            ? 'Copied — paste it into Discord'
-            : 'Copied — paste into Discord, then click “Mark as spoiler”'
-        );
+        // Desktop → copy the image to the clipboard.
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          setFlash(
+            spoilerFree
+              ? 'Image copied — paste it into Discord'
+              : 'Image copied — paste, then click “Mark as spoiler”'
+          );
+        } catch {
+          // Some browsers (e.g. Opera GX) block image clipboard writes.
+          setFlash('This browser blocked the image copy — use “Copy link” instead');
+        }
       }
-      setTimeout(() => setFlash(null), 5000);
+      setTimeout(() => setFlash(null), 6000);
     } catch {
       /* cancelled or error — ignore */
     } finally {
       setBusy(false);
     }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setFlash('Link copied');
+    } catch {
+      setFlash('Copy failed — select the text and copy it manually');
+    }
+    setTimeout(() => setFlash(null), 4000);
   }
 
   return (
@@ -218,18 +230,18 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => share(true)}
+            onClick={() => shareImg(true)}
             disabled={busy}
-            title="Just the colored squares — reveals nothing"
+            title="Image with just the colored squares — reveals nothing"
             className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-950 transition-colors hover:bg-white disabled:opacity-60"
           >
             <Share2 className="h-4 w-4" strokeWidth={2} />
             {busy ? 'Rendering…' : 'Share (no spoilers)'}
           </button>
           <button
-            onClick={() => share(false)}
+            onClick={() => shareImg(false)}
             disabled={busy}
-            title="Shows your guessed units (answer hidden) — spoilers"
+            title="Image showing your guessed units (answer hidden) — spoilers"
             className="inline-flex items-center gap-2 border border-line px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-widest text-slate-300 transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
           >
             <Share2 className="h-4 w-4" strokeWidth={2} />
@@ -238,7 +250,19 @@ function WinCard({ answer, guesses, now }: { answer: Unit; guesses: Unit[]; now:
         </div>
       </div>
 
-      {flash && <p className="px-5 pb-5 font-mono text-[11px] text-emerald-300">{flash}</p>}
+      {flash && <p className="px-5 -mt-2 pb-3 font-mono text-[11px] text-emerald-300">{flash}</p>}
+
+      {/* the link / "try it yourself" as copyable text (works in every browser) */}
+      <div className="flex items-center gap-3 border-t border-line p-4">
+        <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-slate-400">{shareText}</code>
+        <button
+          onClick={copyLink}
+          className="inline-flex shrink-0 items-center gap-2 border border-line px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-widest text-slate-300 transition-colors hover:border-accent hover:text-accent"
+        >
+          <Copy className="h-3.5 w-3.5" strokeWidth={2} />
+          Copy link
+        </button>
+      </div>
     </div>
   );
 }

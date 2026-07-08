@@ -22,18 +22,33 @@ export function puzzleNumber(d = new Date()): number {
   return Math.floor((utcMidnight(d) - EPOCH) / DAY_MS) + 1;
 }
 
-// FNV-1a string hash → spreads consecutive dates across the pool.
-function hash(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
+function mulberry32(a: number): () => number {
+  return function () {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-export function dailyIndex(poolLen: number, key = todayKey()): number {
-  return hash(key) % poolLen;
+// Seeded daily permutation: within each full cycle of `poolLen` days every unit
+// comes up exactly once (no repeats), the distribution is uniform across
+// factions, and each cycle uses a different shuffle. Deterministic per UTC date
+// and decoupled from the (sequential) puzzle number.
+export function dailyIndex(poolLen: number, d = new Date()): number {
+  const dayNumber = Math.floor((utcMidnight(d) - EPOCH) / DAY_MS);
+  const cycle = Math.floor(dayNumber / poolLen);
+  const pos = ((dayNumber % poolLen) + poolLen) % poolLen;
+  const rnd = mulberry32((0x9e3779b9 ^ cycle) >>> 0);
+  const order = Array.from({ length: poolLen }, (_, i) => i);
+  for (let i = poolLen - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    const tmp = order[i];
+    order[i] = order[j];
+    order[j] = tmp;
+  }
+  return order[pos];
 }
 
 export function msUntilNextUTCDay(now = new Date()): number {

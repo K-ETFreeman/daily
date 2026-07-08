@@ -54,7 +54,7 @@ export async function buildShareImage(
   const pad = 26;
   const headerH = 92;
   const rowH = spoilerFree ? 34 : 56;
-  const footerH = 54;
+  const footerH = 22; // bottom padding only — the link now lives in the shared text
   const H = headerH + guesses.length * rowH + footerH;
 
   const canvas = document.createElement('canvas');
@@ -135,22 +135,6 @@ export async function buildShareImage(
       ctx.fillRect(squaresX + j * (sq + gap), y + (rowH - sq) / 2, sq, sq);
     });
   });
-
-  // footer — try it yourself + link
-  const host = (typeof location !== 'undefined' && location.host) || 'FAF Daily';
-  ctx.textAlign = 'center';
-  ctx.font = '700 13px "Martian Mono", monospace';
-  ctx.fillStyle = C.accent;
-  const label = 'TRY IT YOURSELF  ·  ';
-  const labelW = ctx.measureText(label).width;
-  ctx.fillStyle = C.dim;
-  const hostW = ctx.measureText(host).width;
-  const startX = W / 2 - (labelW + hostW) / 2;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = C.accent;
-  ctx.fillText(label, startX, H - 22);
-  ctx.fillStyle = C.dim;
-  ctx.fillText(host, startX + labelW, H - 22);
 
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
 }
