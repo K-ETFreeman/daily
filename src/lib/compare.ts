@@ -65,6 +65,16 @@ function compareNum(g: number, a: number): Cell {
   return { state: close ? 'partial' : 'miss', text: num(g), arrow };
 }
 
+// Domains that share a movement layer count as a partial (amber) match: Land,
+// Hover and Amphibious all traverse land; Naval and Amphibious both go in water.
+const DOMAIN_GROUPS = [
+  ['Land', 'Hover', 'Amphibious'],
+  ['Naval', 'Amphibious'],
+];
+function domainsRelated(a: string, b: string): boolean {
+  return DOMAIN_GROUPS.some((g) => g.includes(a) && g.includes(b));
+}
+
 export function compareColumn(col: Column, guess: Unit, answer: Unit): Cell {
   if (col.kind === 'set') {
     return compareSet(guess[col.key] as string[], answer[col.key] as string[]);
@@ -75,6 +85,12 @@ export function compareColumn(col: Column, guess: Unit, answer: Unit): Cell {
   if (col.kind === 'tech') {
     if (guess.tech === answer.tech) return { state: 'hit', text: guess.tech };
     return { state: 'miss', text: guess.tech, arrow: answer.techRank > guess.techRank ? '↑' : '↓' };
+  }
+  if (col.key === 'domain') {
+    const g = guess.domain;
+    const a = answer.domain;
+    if (g === a) return { state: 'hit', text: g };
+    return { state: domainsRelated(g, a) ? 'partial' : 'miss', text: g };
   }
   // categorical
   const gv = String(guess[col.key]);

@@ -11,6 +11,11 @@ import { UnitIcon } from './components/UnitIcon';
 const STORE_KEY = 'faf-daily';
 const DATA_URL = 'https://unitdb.faforever.com/';
 
+// Hand-picked answers for specific dates (UTC), overriding the daily algorithm.
+const DAILY_OVERRIDES: Record<string, string> = {
+  '2026-07-11': 'DRLK005', // Crab Egg (Bouncer)
+};
+
 interface Saved {
   date: string;
   guesses: string[];
@@ -31,7 +36,11 @@ function loadSaved(): Saved {
 }
 
 export default function App() {
-  const answer = useMemo(() => UNITS[dailyIndex(UNITS.length)], []);
+  const answer = useMemo(() => {
+    const forced = DAILY_OVERRIDES[todayKey()];
+    const override = forced ? UNITS.find((u) => u.id === forced) : undefined;
+    return override ?? UNITS[dailyIndex(UNITS.length)];
+  }, []);
   const initial = useMemo(loadSaved, []);
   const [guesses, setGuesses] = useState<Unit[]>(
     () => initial.guesses.map(findById).filter((u): u is Unit => !!u)
