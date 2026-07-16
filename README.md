@@ -4,7 +4,7 @@ A daily "guess the unit" game for **Supreme Commander: Forged Alliance** — in 
 style of Wordle/Loldle. One mystery unit per day (same for everyone, UTC). Guess
 any base-faction unit; the grid reveals which attributes match.
 
-- **Faction · Tech · Unit/Building · Domain · Weapon · Produces · Role · Mass · HP · Build · Abilities**
+- **Faction · Tech · Unit/Building · Domain · Weapon · Yields · Role · Mass · HP · Build · Abilities**
 - 🟩 exact match · 🟨 partial / close · 🟥 no · ↑/↓ answer is higher / lower
 - 286 base-faction units (Aeon/UEF/Cybran/Seraphim). **Nomads excluded.**
 - Unit build-icons are hotlinked from the [FAForever/UnitDB](https://github.com/FAForever/UnitDB)
