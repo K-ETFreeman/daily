@@ -32,17 +32,24 @@ export function Search({ pool, disabled, onPick }: Props) {
   const [active, setActive] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  // Multi-term AND search across faction / tier / type / name / desc / role /
-  // weapon / abilities. So "aeon land factory", "aeon tmd", "t3 cybran bomber",
-  // or just "aeon" all work. Aliases (tmd, mex, acu, …) expand to real words.
+  // Multi-term AND search across faction / tier / type / name / description, so
+  // "aeon land factory", "aeon tmd", "t3 cybran bomber", or just "aeon" work.
+  // Aliases (tmd, mex, acu, …) expand to real words.
+  //
+  // Role / Weapon / Abilities are deliberately NOT searchable: those are grid
+  // clues you're meant to deduce, and indexing them would let you enumerate the
+  // answer set (e.g. typing "volatile" to list every Volatile unit).
   const matches = useMemo(() => {
     const query = q.trim().toLowerCase();
     if (!query) return [];
     const tokens = query.split(/\s+/).flatMap((t) => ALIASES[t] || [t]);
     const scored: { u: Unit; rank: number }[] = [];
+    // stem tolerance so near-spellings still land ("fabrication" -> "Fabricator")
+    const hit = (hay: string, t: string) =>
+      hay.includes(t) || (t.length >= 5 && hay.includes(t.slice(0, 5)));
     for (const u of pool) {
-      const hay = `${u.faction} ${u.tech} ${u.type} ${u.name} ${u.desc} ${u.role.join(' ')} ${u.weapon.join(' ')} ${u.abilities.join(' ')}`.toLowerCase();
-      if (!tokens.every((t) => hay.includes(t))) continue;
+      const hay = `${u.faction} ${u.tech} ${u.type} ${u.name} ${u.desc}`.toLowerCase();
+      if (!tokens.every((t) => hit(hay, t))) continue;
       const n = u.name.toLowerCase();
       let rank = 3;
       if (n === query) rank = 0;
