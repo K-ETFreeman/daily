@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "build:units": "node scripts/build-units.mjs"
+    "build:units": "node scripts/build-units.mjs",
+    "update-data": "node scripts/fetch-data.mjs && node scripts/build-units.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.460.0",
