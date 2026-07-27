@@ -119,9 +119,7 @@ const pool = units
       (u.General.UnitName || u.Description) &&
       (has(u, 'SELECTABLE') || has(u, 'CRABEGG')) &&
       (has(u, 'MOBILE') || has(u, 'STRUCTURE') || has(u, 'CRABEGG')) &&
-      (techOf(u)[0] || has(u, 'CRABEGG')) &&
-      !has(u, 'WALL') &&
-      !/wall section/i.test(u.Description || '')
+      (techOf(u)[0] || has(u, 'CRABEGG'))
   )
   .map((u) => {
     const [tech, techRank] = techOf(u);
@@ -147,11 +145,13 @@ const pool = units
   })
   .sort((a, b) => b.mass - a.mass); // costliest first so de-dupe keeps the canonical variant
 
-// De-dupe by name + faction + tech (collapses true duplicates like a factory and
-// its HQ at the same tier; keeps distinct factions/tiers that share a name).
+// De-dupe by name + faction + tech + description. Only true duplicates (identical
+// on all four) collapse; this keeps distinct units even when Seraphim reuses one
+// UnitName across structures (e.g. an Air Factory HQ vs its support factory,
+// which share the UnitName "Ia-iya" but differ in description).
 const byKey = new Map();
 for (const u of pool) {
-  const key = `${u.name}|${u.faction}|${u.tech}`;
+  const key = `${u.name}|${u.faction}|${u.tech}|${u.desc}`;
   if (!byKey.has(key)) byKey.set(key, u);
 }
 const out = [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));

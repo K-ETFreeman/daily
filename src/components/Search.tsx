@@ -31,6 +31,7 @@ export function Search({ pool, disabled, onPick }: Props) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Multi-term AND search across faction / tier / type / name / description, so
   // "aeon land factory", "aeon tmd", "t3 cybran bomber", or just "aeon" work.
@@ -65,6 +66,12 @@ export function Search({ pool, disabled, onPick }: Props) {
 
   useEffect(() => setActive(0), [q]);
 
+  // Focus the search box on load so you can type a guess the instant the page
+  // opens. Only while playable — don't grab focus once the puzzle is solved.
+  useEffect(() => {
+    if (!disabled) inputRef.current?.focus();
+  }, [disabled]);
+
   useEffect(() => {
     function onDoc(e: MouseEvent) {
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
@@ -92,6 +99,7 @@ export function Search({ pool, disabled, onPick }: Props) {
       <div className="flex items-center border border-line bg-surface focus-within:border-accent">
         <SearchIcon className="ml-3 h-4 w-4 shrink-0 text-slate-500" strokeWidth={1.5} />
         <input
+          ref={inputRef}
           className="w-full bg-transparent px-3 py-3.5 text-[15px] text-slate-100 placeholder:text-slate-500 focus:outline-none"
           placeholder={disabled ? 'Solved — back tomorrow' : 'Search: name, role, "aeon land factory", "t3 bomber"…'}
           value={q}
