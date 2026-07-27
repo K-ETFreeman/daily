@@ -28,6 +28,8 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
 interface Opts {
   /** Hide all unit identity — draw only the match squares (safe to post). */
   spoilerFree?: boolean;
+  /** Label the card as the daily challenge rather than the normal daily. */
+  challenge?: boolean;
 }
 
 /**
@@ -79,7 +81,7 @@ export async function buildShareImage(
   ctx.textAlign = 'left';
   ctx.fillStyle = C.text;
   ctx.font = '800 28px "Martian Mono", monospace';
-  ctx.fillText(`FAF DAILY #${puzzleNumber()}`, pad, 46);
+  ctx.fillText(`FAF DAILY${opts.challenge ? ' CHALLENGE' : ''} #${puzzleNumber()}`, pad, 46);
   ctx.fillStyle = C.dim;
   ctx.font = '600 15px Inter, sans-serif';
   ctx.fillText(`Solved in ${guesses.length} ${guesses.length === 1 ? 'try' : 'tries'}`, pad, 72);

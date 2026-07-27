@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Lock } from 'lucide-react';
 import type { Unit } from '../lib/units';
 import { FACTION_COLOR } from '../lib/units';
 import { COLUMNS, compareRow } from '../lib/compare';
@@ -8,6 +8,8 @@ import { UnitIcon } from './UnitIcon';
 interface Props {
   guesses: Unit[];
   answer: Unit;
+  /** Column keys to mask (daily-challenge hidden stats). */
+  hidden?: Set<string>;
 }
 
 // Unit + 6 single-value cols + Role (wider) + 3 numeric + Abilities (widest),
@@ -72,7 +74,7 @@ function UnitHead({ g, size }: { g: Unit; size: number }) {
   );
 }
 
-export function GuessGrid({ guesses, answer }: Props) {
+export function GuessGrid({ guesses, answer, hidden }: Props) {
   if (guesses.length === 0) return null;
   const rows = [...guesses].reverse(); // newest first
 
@@ -83,11 +85,20 @@ export function GuessGrid({ guesses, answer }: Props) {
         <div className="min-w-[940px] space-y-2">
           <div className="grid items-end gap-2 px-1" style={{ gridTemplateColumns: COLS }}>
             <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">Unit</span>
-            {COLUMNS.map((c) => (
-              <span key={String(c.key)} className="text-center font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">
-                {c.label}
-              </span>
-            ))}
+            {COLUMNS.map((c) => {
+              const masked = hidden?.has(String(c.key));
+              return (
+                <span
+                  key={String(c.key)}
+                  className={`flex items-center justify-center gap-1 text-center font-mono text-[9px] font-bold uppercase tracking-widest ${
+                    masked ? 'text-slate-600' : 'text-slate-500'
+                  }`}
+                >
+                  {masked && <Lock className="h-2.5 w-2.5 shrink-0" strokeWidth={3} />}
+                  {c.label}
+                </span>
+              );
+            })}
           </div>
 
           {rows.map((g, idx) => {
@@ -101,14 +112,27 @@ export function GuessGrid({ guesses, answer }: Props) {
                 >
                   <UnitHead g={g} size={34} />
                 </div>
-                {cells.map((cell, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-center px-1.5 py-2 text-center text-[12px] font-bold leading-tight ${CELL[cell.state]}`}
-                  >
-                    <CellBody cell={cell} />
-                  </div>
-                ))}
+                {cells.map((cell, i) => {
+                  if (hidden?.has(String(COLUMNS[i].key))) {
+                    return (
+                      <div
+                        key={i}
+                        title="Hidden this round"
+                        className="flex items-center justify-center bg-surface2/60 px-1.5 py-2 ring-1 ring-inset ring-line"
+                      >
+                        <Lock className="h-3.5 w-3.5 text-slate-600" strokeWidth={2.5} />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={i}
+                      className={`flex items-center justify-center px-1.5 py-2 text-center text-[12px] font-bold leading-tight ${CELL[cell.state]}`}
+                    >
+                      <CellBody cell={cell} />
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -130,14 +154,27 @@ export function GuessGrid({ guesses, answer }: Props) {
                 <UnitHead g={g} size={40} />
               </div>
               <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-3">
-                {COLUMNS.map((col, i) => (
-                  <div key={String(col.key)} className={`flex flex-col gap-1 px-3 py-2 ${MCELL[cells[i].state]}`}>
-                    <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-slate-500">{col.label}</span>
-                    <div className="text-[13px] font-bold leading-tight">
-                      <CellBody cell={cells[i]} />
+                {COLUMNS.map((col, i) => {
+                  const masked = hidden?.has(String(col.key));
+                  return (
+                    <div
+                      key={String(col.key)}
+                      className={`flex flex-col gap-1 px-3 py-2 ${masked ? 'bg-surface2/60' : MCELL[cells[i].state]}`}
+                    >
+                      <span
+                        className={`inline-flex items-center gap-1 font-mono text-[9px] font-bold uppercase tracking-widest ${
+                          masked ? 'text-slate-600' : 'text-slate-500'
+                        }`}
+                      >
+                        {masked && <Lock className="h-2.5 w-2.5 shrink-0" strokeWidth={3} />}
+                        {col.label}
+                      </span>
+                      <div className="text-[13px] font-bold leading-tight">
+                        {masked ? <span className="text-slate-600">Hidden</span> : <CellBody cell={cells[i]} />}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
