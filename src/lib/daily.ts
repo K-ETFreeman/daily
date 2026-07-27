@@ -36,30 +36,75 @@ function mulberry32(a: number): () => number {
 // near-term repeats without turning the schedule into a predictable full cycle.
 const AVOID_RECENT_DAYS = 90;
 
-// Deterministic daily pick with a recency window: each day picks a random unit
-// (seeded by the date) that hasn't been used in the last AVOID_RECENT_DAYS days.
-// Same for everyone, decoupled from the puzzle number. After the window a unit
-// can recur, so it's varied and not a fixed permutation. We replay from the
-// epoch to build the window (cheap — a few ms even years out).
-export function dailyIndex(poolLen: number, d = new Date()): number {
-  const dayNumber = Math.floor((utcMidnight(d) - EPOCH) / DAY_MS);
+function dayNumberOf(d: Date): number {
+  return Math.floor((utcMidnight(d) - EPOCH) / DAY_MS);
+}
+
+// Fresh seeded streams per day. The daily and challenge streams use different
+// constants so their sequences are independent of each other.
+function dailySeed(day: number): () => number {
+  return mulberry32((Math.imul(day + 1, 2654435761) ^ 0x9e3779b9) >>> 0);
+}
+function challengeSeed(day: number): () => number {
+  return mulberry32((Math.imul(day + 1, 2246822519) ^ 0x85ebca6b) >>> 0);
+}
+
+// Build the pick sequence [day 0 .. dayNumber] for a seed function, applying
+// the recency window. `blocked(day, pick)` can veto extra values (the challenge
+// uses it to never reuse that day's daily answer). Cheap: a few ms even years
+// past the epoch. Same for everyone, decoupled from the puzzle number; after
+// the window a unit can recur, so it's varied and not a fixed permutation.
+function pickSeq(
+  poolLen: number,
+  dayNumber: number,
+  seedFor: (day: number) => () => number,
+  blocked?: (day: number, pick: number) => boolean
+): number[] {
   const window = Math.min(AVOID_RECENT_DAYS, poolLen - 1);
   const recent: number[] = [];
   const recentSet = new Set<number>();
-  let pick = 0;
+  const out: number[] = [];
 
   for (let day = 0; day <= dayNumber; day++) {
-    const rnd = mulberry32((Math.imul(day + 1, 2654435761) ^ 0x9e3779b9) >>> 0);
-    pick = Math.floor(rnd() * poolLen);
-    // re-roll if it was used within the window (always resolves: window < pool)
-    for (let attempt = 0; attempt < 64 && recentSet.has(pick); attempt++) {
+    const rnd = seedFor(day);
+    let pick = Math.floor(rnd() * poolLen);
+    // re-roll if used within the window (or vetoed); always resolves: window < pool
+    for (
+      let attempt = 0;
+      attempt < 64 && (recentSet.has(pick) || (blocked ? blocked(day, pick) : false));
+      attempt++
+    ) {
       pick = Math.floor(rnd() * poolLen);
     }
+    out.push(pick);
     recent.push(pick);
     recentSet.add(pick);
     if (recent.length > window) recentSet.delete(recent.shift() as number);
   }
-  return pick;
+  return out;
+}
+
+export function dailyIndex(poolLen: number, d = new Date()): number {
+  const dayNumber = dayNumberOf(d);
+  return pickSeq(poolLen, dayNumber, dailySeed)[dayNumber];
+}
+
+// The daily-challenge answer: a separate deterministic stream that is never the
+// same unit as that day's normal daily, so solving one can't reveal the other.
+export function challengeIndex(poolLen: number, d = new Date()): number {
+  const dayNumber = dayNumberOf(d);
+  const daily = pickSeq(poolLen, dayNumber, dailySeed);
+  return pickSeq(poolLen, dayNumber, challengeSeed, (day, pick) => pick === daily[day])[dayNumber];
+}
+
+// Deterministic per-day RNG for feature logic that must be stable within a day
+// but independent of the answer streams (e.g. which columns the daily challenge
+// hides or lies about). `salt` yields an independent stream per use-site.
+export function dayRng(d = new Date(), salt = 0): () => number {
+  const day = dayNumberOf(d);
+  return mulberry32(
+    (Math.imul(day + 1, 2166136261) ^ Math.imul(salt + 1, 3266489917) ^ 0x27d4eb2f) >>> 0
+  );
 }
 
 export function msUntilNextUTCDay(now = new Date()): number {
