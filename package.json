@@ -8,15 +8,19 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "typecheck:server": "tsc -p tsconfig.server.json",
+    "server": "tsx watch server/index.ts",
     "build:units": "node scripts/build-units.mjs",
     "update-data": "node scripts/fetch-data.mjs && node scripts/build-units.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
+    "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",

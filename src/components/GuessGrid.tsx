@@ -1,13 +1,18 @@
 import { ChevronUp, ChevronDown, Lock } from 'lucide-react';
 import type { Unit } from '../lib/units';
 import { FACTION_COLOR } from '../lib/units';
-import { COLUMNS, compareRow } from '../lib/compare';
+import { COLUMNS } from '../lib/compare';
 import type { Cell } from '../lib/compare';
 import { UnitIcon } from './UnitIcon';
 
+/** A guessed unit paired with its server-computed comparison cells. */
+export interface GuessResult {
+  unit: Unit;
+  cells: Cell[];
+}
+
 interface Props {
-  guesses: Unit[];
-  answer: Unit;
+  results: GuessResult[];
   /** Column keys to mask (daily-challenge hidden stats). */
   hidden?: Set<string>;
 }
@@ -74,9 +79,9 @@ function UnitHead({ g, size }: { g: Unit; size: number }) {
   );
 }
 
-export function GuessGrid({ guesses, answer, hidden }: Props) {
-  if (guesses.length === 0) return null;
-  const rows = [...guesses].reverse(); // newest first
+export function GuessGrid({ results, hidden }: Props) {
+  if (results.length === 0) return null;
+  const rows = [...results].reverse(); // newest first
 
   return (
     <>
@@ -101,8 +106,7 @@ export function GuessGrid({ guesses, answer, hidden }: Props) {
             })}
           </div>
 
-          {rows.map((g, idx) => {
-            const cells = compareRow(g, answer);
+          {rows.map(({ unit: g, cells }, idx) => {
             const newest = idx === 0;
             return (
               <div key={g.id} className="grid animate-rise items-stretch gap-2" style={{ gridTemplateColumns: COLS }}>
@@ -141,8 +145,7 @@ export function GuessGrid({ guesses, answer, hidden }: Props) {
 
       {/* ---------- mobile / narrow: per-guess card + tile grid ---------- */}
       <div className="space-y-3 lg:hidden">
-        {rows.map((g, idx) => {
-          const cells = compareRow(g, answer);
+        {rows.map(({ unit: g, cells }, idx) => {
           const newest = idx === 0;
           return (
             <div

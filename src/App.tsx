@@ -2,32 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Share2, Clock, Copy, Swords, ChevronLeft, Lock } from 'lucide-react';
 import { UNITS, findById } from './lib/units';
 import type { Unit } from './lib/units';
-import {
-  dailyIndex,
-  challengeIndex,
-  todayKey,
-  puzzleNumber,
-  msUntilNextUTCDay,
-  formatCountdown,
-} from './lib/daily';
-import { challengeConfig, columnLabels } from './lib/challenge';
-import type { ChallengeConfig } from './lib/challenge';
+import { todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown } from './lib/daily';
+import { columnLabels } from './lib/challenge';
+import { fetchDailyState } from './lib/api';
+import type { DailyState, Mode } from './lib/api';
 import { buildShareImage } from './lib/shareImage';
 import { Search } from './components/Search';
 import { GuessGrid } from './components/GuessGrid';
+import type { GuessResult } from './components/GuessGrid';
 import { UnitIcon } from './components/UnitIcon';
-
-type Mode = 'daily' | 'challenge';
 
 const STORE_KEY = 'faf-daily'; // normal daily (also migrates the legacy key)
 const CHALLENGE_KEY = 'faf-daily-challenge'; // daily challenge, tracked separately
 const MODE_KEY = 'faf-daily-mode'; // which mode this browser last had open
 const DATA_URL = 'https://faforever.github.io/etfreeman-db/#/';
-
-// Hand-picked answers for specific dates (UTC), overriding the daily algorithm.
-const DAILY_OVERRIDES: Record<string, string> = {
-  '2026-07-11': 'DRLK005', // Crab Egg (Bouncer)
-};
 
 interface Saved {
   date: string;
@@ -68,34 +56,46 @@ function loadMode(): Mode {
   }
 }
 
-function pickAnswer(mode: Mode): Unit {
-  if (mode === 'challenge') return UNITS[challengeIndex(UNITS.length)];
-  const forced = DAILY_OVERRIDES[todayKey()];
-  const override = forced ? findById(forced) : undefined;
-  return override ?? UNITS[dailyIndex(UNITS.length)];
-}
-
 export default function App() {
   const [mode, setMode] = useState<Mode>(loadMode);
-  const answer = useMemo(() => pickAnswer(mode), [mode]);
-  const chal: ChallengeConfig | null = useMemo(
-    () => (mode === 'challenge' ? challengeConfig(answer) : null),
-    [mode, answer]
-  );
   const [guesses, setGuesses] = useState<Unit[]>(() => loadGuesses(mode));
-  const solved = guesses.some((g) => g.id === answer.id);
+  const [state, setState] = useState<DailyState | null>(null);
+  const [error, setError] = useState(false);
   const [now, setNow] = useState(Date.now());
 
+  // The server is the source of truth for the answer, the challenge lie, and
+  // every grid cell — the browser never holds the answer until it has won.
+  const solved = state?.solved ?? false;
+  const answer = state?.answer ?? null;
+
+  // Re-sync with the server whenever the mode or the set of guesses changes.
+  useEffect(() => {
+    let cancelled = false;
+    setError(false);
+    fetchDailyState(mode, guesses.map((g) => g.id))
+      .then((s) => {
+        if (!cancelled) setState(s);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, guesses]);
+
+  // Persist per-mode progress (ids only) so a refresh restores the board.
   useEffect(() => {
     const saved: Saved = { date: todayKey(), guesses: guesses.map((g) => g.id), solved };
     localStorage.setItem(storeKey(mode), JSON.stringify(saved));
   }, [mode, guesses, solved]);
 
-  // Switch modes: remember the choice and load that mode's own saved progress in
-  // the same update, so the save effect can't clobber the other mode's data.
+  // Switch modes: remember the choice, load that mode's own saved progress, and
+  // clear stale board state so the effect above re-fetches for the new mode.
   const switchMode = useCallback((next: Mode) => {
     setMode(next);
     setGuesses(loadGuesses(next));
+    setState(null);
     try {
       localStorage.setItem(MODE_KEY, next);
     } catch {
@@ -103,19 +103,14 @@ export default function App() {
     }
   }, []);
 
-  // In the challenge, hide two columns and inject one lie while playing; once
-  // solved, reveal the truth so a finished board never looks wrong.
-  const hidden = !solved && chal ? new Set(chal.hidden) : undefined;
-  const gridAnswer = !solved && chal ? ({ ...answer, ...chal.decoy } as Unit) : answer;
-
   useEffect(() => {
     if (!solved) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [solved]);
 
-  const guessedIds = new Set(guesses.map((g) => g.id));
-  const pool = useMemo(() => UNITS.filter((u) => !guessedIds.has(u.id)), [guesses]);
+  const guessedIds = useMemo(() => new Set(guesses.map((g) => g.id)), [guesses]);
+  const pool = useMemo(() => UNITS.filter((u) => !guessedIds.has(u.id)), [guessedIds]);
 
   const onPick = useCallback(
     (u: Unit) => {
@@ -124,6 +119,24 @@ export default function App() {
     },
     [solved]
   );
+
+  // Pair each guessed unit with the server's cells for it (same order). While a
+  // sync is in flight the newest guess may have no cells yet — skip those rows.
+  const results: GuessResult[] = useMemo(() => {
+    const rows = state?.rows ?? [];
+    return guesses
+      .map((unit, i) => ({ unit, cells: rows[i] }))
+      .filter((r): r is GuessResult => !!r.cells);
+  }, [guesses, state]);
+
+  // Challenge: mask the hidden columns while the round is unsolved.
+  const hidden = state && !solved && state.hidden.length ? new Set(state.hidden) : undefined;
+
+  // Restoring a saved board: wait for the first server sync before choosing
+  // between the search box and the win card, so a solved returner doesn't flash
+  // the input. A fresh player (no saved guesses) skips this and sees the search
+  // box immediately (so it can auto-focus). On error we fall through to search.
+  const restoring = state === null && guesses.length > 0 && !error;
 
   const showIntro = !solved && guesses.length === 0;
 
@@ -223,12 +236,23 @@ export default function App() {
 
         {/* input / win */}
         <div className="mt-7">
-          {solved ? (
+          {restoring ? (
+            <div className="border border-line bg-surface px-4 py-3.5 font-mono text-[12px] uppercase tracking-widest text-slate-500">
+              Loading your board…
+            </div>
+          ) : solved && answer ? (
             <WinCard answer={answer} guesses={guesses} now={now} challenge={mode === 'challenge'} />
           ) : (
             <Search pool={pool} onPick={onPick} />
           )}
         </div>
+
+        {error && (
+          <p className="mt-3 border border-rose-500/40 bg-rose-500/10 px-4 py-2.5 text-[13px] text-rose-200">
+            Couldn't reach the game server, so your last guess may not have registered. Check your
+            connection and pick it again.
+          </p>
+        )}
 
         {/* legend */}
         {guesses.length > 0 && (
@@ -252,18 +276,19 @@ export default function App() {
             <span>Two stats are hidden and one visible stat is lying this round.</span>
           </div>
         )}
-        {mode === 'challenge' && solved && chal && (
+        {mode === 'challenge' && solved && state?.reveal && (
           <div className="mt-4 border border-line bg-surface px-4 py-3 text-[13px] leading-relaxed text-slate-300">
-            <span className="font-semibold text-rose-300">{columnLabels([chal.liar])[0]}</span> was the lie this
-            round, and{' '}
-            <span className="font-semibold text-slate-200">{columnLabels(chal.hidden).join(' and ')}</span>{' '}
-            {chal.hidden.length === 1 ? 'was' : 'were'} hidden. The board below now shows every stat truthfully.
+            <span className="font-semibold text-rose-300">{columnLabels([state.reveal.liar])[0]}</span> was the
+            lie this round, and{' '}
+            <span className="font-semibold text-slate-200">{columnLabels(state.reveal.hidden).join(' and ')}</span>{' '}
+            {state.reveal.hidden.length === 1 ? 'was' : 'were'} hidden. The board below now shows every stat
+            truthfully.
           </div>
         )}
 
         {/* guesses */}
         <div className="mt-3">
-          <GuessGrid guesses={guesses} answer={gridAnswer} hidden={hidden} />
+          <GuessGrid results={results} hidden={hidden} />
         </div>
 
         <footer className="mt-14 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-4 font-mono text-[10px] uppercase tracking-widest text-slate-600">

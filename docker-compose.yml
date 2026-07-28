@@ -1,10 +1,33 @@
 services:
-  unitdle:
+  # Answer service — internal only (not published). The web container proxies
+  # /api/* to it. It generates and persists its own answer secret in the volume
+  # below, so there is nothing to configure. To pin the secret yourself instead,
+  # uncomment DAILY_SECRET.
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      - PORT=8090
+      # - DAILY_SECRET=change-me-to-a-long-random-string
+    volumes:
+      - daily-secret:/data
+    expose:
+      - "8090"
+
+  # Static SPA (nginx) that also reverse-proxies /api to the answer service.
+  # Published on host 8081 exactly as before, so your edge reverse proxy
+  # (e.g. unitdle.doodlepros.com -> VM-IP:8081) needs no changes.
+  web:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    depends_on:
+      - api
     ports:
-      # host 8081 -> container nginx :80. Point your edge reverse proxy
-      # (e.g. unitdle.doodlepros.com) at VM-IP:8081.
       - "8081:80"
+
+volumes:
+  daily-secret:
