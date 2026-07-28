@@ -249,7 +249,7 @@ export default function App() {
         {mode === 'challenge' && guesses.length > 0 && !solved && (
           <div className="mt-4 flex items-start gap-2 border border-accent/30 bg-surface px-4 py-2.5 text-[13px] text-slate-300">
             <Swords className="mt-0.5 h-4 w-4 shrink-0 text-accent" strokeWidth={2} />
-            <span>Two stats are hidden and one visible stat is lying this round. One column is wrong on purpose.</span>
+            <span>Two stats are hidden and one visible stat is lying this round.</span>
           </div>
         )}
         {mode === 'challenge' && solved && chal && (

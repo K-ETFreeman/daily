@@ -77,11 +77,20 @@ export async function buildShareImage(
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // title
+  // title — draw in segments so "CHALLENGE" pops in the accent color, making
+  // challenge screenshots instantly distinguishable from normal daily ones.
   ctx.textAlign = 'left';
-  ctx.fillStyle = C.text;
   ctx.font = '800 28px "Martian Mono", monospace';
-  ctx.fillText(`FAF DAILY${opts.challenge ? ' CHALLENGE' : ''} #${puzzleNumber()}`, pad, 46);
+  const titleY = 46;
+  let tx = pad;
+  const seg = (s: string, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillText(s, tx, titleY);
+    tx += ctx.measureText(s).width;
+  };
+  seg('FAF DAILY', C.text);
+  if (opts.challenge) seg(' CHALLENGE', C.accent);
+  seg(` #${puzzleNumber()}`, C.text);
   ctx.fillStyle = C.dim;
   ctx.font = '600 15px Inter, sans-serif';
   ctx.fillText(`Solved in ${guesses.length} ${guesses.length === 1 ? 'try' : 'tries'}`, pad, 72);
