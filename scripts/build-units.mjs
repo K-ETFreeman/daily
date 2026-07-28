@@ -142,7 +142,11 @@ const pool = units
       buildTime: u.Economy?.BuildTime ?? 0,
       abilities: abilitiesOf(u),
     };
-  });
+  })
+  // Costliest-first so the stable alphabetical sort below keeps costlier variants
+  // first within a shared-name group (e.g. The Hive ×3). This fixes the array
+  // indices that dailyIndex() resolves to — reordering would shift every daily answer.
+  .sort((a, b) => b.mass - a.mass);
 
 // Dedup only true cell-duplicates — units with identical 11-cell signatures are indistinguishable in the guess grid.
 const byCells = new Map();
