@@ -143,20 +143,27 @@ const pool = units
       abilities: abilitiesOf(u),
     };
   })
-  .sort((a, b) => b.mass - a.mass); // costliest first so de-dupe keeps the canonical variant
+  // Costliest-first so the stable alphabetical sort below keeps costlier variants
+  // first within a shared-name group (e.g. The Hive ×3). This fixes the array
+  // indices that dailyIndex() resolves to — reordering would shift every daily answer.
+  .sort((a, b) => b.mass - a.mass);
 
-// De-dupe only genuinely indistinguishable entries: collapse two units only when
-// they match on every attribute the game reveals (name, faction, tech, desc AND
-// the numeric stats mass/energy/hp/buildTime). This keeps distinct units that
-// share a name but differ in cost — e.g. Seraphim's "Ia-iya" Air Factory HQ vs
-// its support factory (different desc), and Cybran's three "The Hive" engineering
-// stations (same name/tech/desc, different mass tiers).
-const byKey = new Map();
+// Dedup only true cell-duplicates — units with identical 11-cell signatures are indistinguishable in the guess grid.
+const byCells = new Map();
 for (const u of pool) {
-  const key = `${u.name}|${u.faction}|${u.tech}|${u.desc}|${u.mass}|${u.energy}|${u.hp}|${u.buildTime}`;
-  if (!byKey.has(key)) byKey.set(key, u);
+  const sig = JSON.stringify([
+    u.faction, u.tech, u.type, u.domain,
+    [...u.weapon].sort(), [...u.produces].sort(), [...u.role].sort(),
+    u.mass, u.hp, u.buildTime, [...u.abilities].sort(),
+  ]);
+  if (!byCells.has(sig)) byCells.set(sig, u);
 }
-const out = [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
+const out = [...byCells.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+const removed = pool.length - out.length;
+if (removed > 0) {
+  console.warn(`Warning: ${removed} unit${removed === 1 ? ' was' : 's were'} removed by de-duplication (${pool.length} → ${out.length})`);
+}
 
 writeFileSync(join(here, '..', 'src', 'data', 'units.json'), JSON.stringify(out, null, 0) + '\n');
 
