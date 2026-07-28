@@ -224,9 +224,8 @@ export default function App() {
                 hidden
               </span>{' '}
               with no clue at all, and exactly one visible column is a{' '}
-              <span className="font-semibold text-rose-300">lie</span> - it shows a real color, but compared
-              against the wrong unit. You are not told which one. Every other column is honest. Solve it and
-              the hidden stats and the lie are revealed.
+              <span className="font-semibold text-rose-300">lie</span>. You are not told which one. Every other
+              column is honest. Solve it and the hidden stats and the lie are revealed.
             </p>
             <p className="mt-3 font-mono text-[11px] uppercase tracking-widest text-slate-500">
               Same search as always - name, role, or faction.

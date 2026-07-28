@@ -79,7 +79,15 @@ export function challengeConfig(answer: Unit, d = new Date()): ChallengeConfig {
   }
 
   const source = decoyUnit ?? answer; // fallback never hit with the real dataset
-  return { hidden, liar, decoy: { [liar]: pluck(source, liar) } };
+  // The tech column reads two fields — the tech label for the match and techRank
+  // for the ↑/↓ arrow — so a tech lie must borrow BOTH from the same decoy, or
+  // the arrow (still computed from the real rank) contradicts the fake label and
+  // gives the lie away.
+  const decoy =
+    liar === 'tech'
+      ? { tech: pluck(source, 'tech'), techRank: pluck(source, 'techRank') }
+      : { [liar]: pluck(source, liar) };
+  return { hidden, liar, decoy };
 }
 
 // Human labels for a set of column keys, returned in COLUMNS order.
