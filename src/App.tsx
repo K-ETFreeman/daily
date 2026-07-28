@@ -22,7 +22,8 @@ type Mode = 'daily' | 'challenge';
 const STORE_KEY = 'faf-daily'; // normal daily (also migrates the legacy key)
 const CHALLENGE_KEY = 'faf-daily-challenge'; // daily challenge, tracked separately
 const MODE_KEY = 'faf-daily-mode'; // which mode this browser last had open
-const DATA_URL = 'https://unitdb.faforever.com/';
+const DATA_URL = 'https://faforever.github.io/etfreeman-db/';
+const ICONS_URL = 'https://unitdb.faforever.com/';
 
 // Hand-picked answers for specific dates (UTC), overriding the daily algorithm.
 const DAILY_OVERRIDES: Record<string, string> = {
@@ -275,7 +276,16 @@ export default function App() {
             rel="noopener noreferrer"
             className="text-slate-500 underline decoration-slate-700 underline-offset-2 transition-colors hover:text-accent"
           >
-            Unit data &amp; icons from the FAF Unit Database ↗
+            Unit data from etfreeman-db ↗
+          </a>
+          <span className="text-slate-700">·</span>
+          <a
+            href={ICONS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-500 underline decoration-slate-700 underline-offset-2 transition-colors hover:text-accent"
+          >
+            Unit icons from UnitDB ↗
           </a>
         </footer>
       </div>

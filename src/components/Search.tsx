@@ -43,6 +43,9 @@ export function Search({ pool, disabled, onPick }: Props) {
   const matches = useMemo(() => {
     const query = q.trim().toLowerCase();
     if (!query) return [];
+    // Exact ID → just that unit, skip stem/token matching
+    const exact = pool.find((u) => u.id.toLowerCase() === query);
+    if (exact) return [exact];
     const tokens = query.split(/\s+/).flatMap((t) => ALIASES[t] || [t]);
     const scored: { u: Unit; rank: number }[] = [];
     // stem tolerance so near-spellings still land ("fabrication" -> "Fabricator")
