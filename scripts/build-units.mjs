@@ -145,13 +145,15 @@ const pool = units
   })
   .sort((a, b) => b.mass - a.mass); // costliest first so de-dupe keeps the canonical variant
 
-// De-dupe by name + faction + tech + description. Only true duplicates (identical
-// on all four) collapse; this keeps distinct units even when Seraphim reuses one
-// UnitName across structures (e.g. an Air Factory HQ vs its support factory,
-// which share the UnitName "Ia-iya" but differ in description).
+// De-dupe only genuinely indistinguishable entries: collapse two units only when
+// they match on every attribute the game reveals (name, faction, tech, desc AND
+// the numeric stats mass/energy/hp/buildTime). This keeps distinct units that
+// share a name but differ in cost — e.g. Seraphim's "Ia-iya" Air Factory HQ vs
+// its support factory (different desc), and Cybran's three "The Hive" engineering
+// stations (same name/tech/desc, different mass tiers).
 const byKey = new Map();
 for (const u of pool) {
-  const key = `${u.name}|${u.faction}|${u.tech}|${u.desc}`;
+  const key = `${u.name}|${u.faction}|${u.tech}|${u.desc}|${u.mass}|${u.energy}|${u.hp}|${u.buildTime}`;
   if (!byKey.has(key)) byKey.set(key, u);
 }
 const out = [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));

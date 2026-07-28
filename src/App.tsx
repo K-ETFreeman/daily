@@ -22,7 +22,7 @@ type Mode = 'daily' | 'challenge';
 const STORE_KEY = 'faf-daily'; // normal daily (also migrates the legacy key)
 const CHALLENGE_KEY = 'faf-daily-challenge'; // daily challenge, tracked separately
 const MODE_KEY = 'faf-daily-mode'; // which mode this browser last had open
-const DATA_URL = 'https://unitdb.faforever.com/';
+const DATA_URL = 'https://faforever.github.io/etfreeman-db/#/';
 
 // Hand-picked answers for specific dates (UTC), overriding the daily algorithm.
 const DAILY_OVERRIDES: Record<string, string> = {
