@@ -22,8 +22,7 @@ type Mode = 'daily' | 'challenge';
 const STORE_KEY = 'faf-daily'; // normal daily (also migrates the legacy key)
 const CHALLENGE_KEY = 'faf-daily-challenge'; // daily challenge, tracked separately
 const MODE_KEY = 'faf-daily-mode'; // which mode this browser last had open
-const DATA_URL = 'https://faforever.github.io/etfreeman-db/';
-const ICONS_URL = 'https://unitdb.faforever.com/';
+const DATA_URL = 'https://faforever.github.io/etfreeman-db/#/';
 
 // Hand-picked answers for specific dates (UTC), overriding the daily algorithm.
 const DAILY_OVERRIDES: Record<string, string> = {
@@ -250,7 +249,7 @@ export default function App() {
         {mode === 'challenge' && guesses.length > 0 && !solved && (
           <div className="mt-4 flex items-start gap-2 border border-accent/30 bg-surface px-4 py-2.5 text-[13px] text-slate-300">
             <Swords className="mt-0.5 h-4 w-4 shrink-0 text-accent" strokeWidth={2} />
-            <span>Two stats are hidden and one visible stat is lying this round. One column is wrong on purpose.</span>
+            <span>Two stats are hidden and one visible stat is lying this round.</span>
           </div>
         )}
         {mode === 'challenge' && solved && chal && (
@@ -276,16 +275,7 @@ export default function App() {
             rel="noopener noreferrer"
             className="text-slate-500 underline decoration-slate-700 underline-offset-2 transition-colors hover:text-accent"
           >
-            Unit data from etfreeman-db ↗
-          </a>
-          <span className="text-slate-700">·</span>
-          <a
-            href={ICONS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-slate-500 underline decoration-slate-700 underline-offset-2 transition-colors hover:text-accent"
-          >
-            Unit icons from UnitDB ↗
+            Unit data &amp; icons from the FAF Unit Database ↗
           </a>
         </footer>
       </div>
