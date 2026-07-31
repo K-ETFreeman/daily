@@ -10,6 +10,7 @@ import { buildShareImage } from './lib/shareImage';
 import { Search } from './components/Search';
 import { GuessGrid } from './components/GuessGrid';
 import type { GuessResult } from './components/GuessGrid';
+import { ColumnGuide } from './components/ColumnGuide';
 import { UnitIcon } from './components/UnitIcon';
 
 const STORE_KEY = 'faf-daily'; // normal daily (also migrates the legacy key)
@@ -290,6 +291,9 @@ export default function App() {
             what the lie had displayed under the {columnLabels([state.reveal.liar])[0]} column.
           </div>
         )}
+
+        {/* column reference — collapsed, so it's discoverable but not pushy */}
+        <ColumnGuide />
 
         {/* guesses */}
         <div className="mt-3">
