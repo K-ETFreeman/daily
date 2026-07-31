@@ -3,7 +3,7 @@ import { Share2, Clock, Copy, Swords, ChevronLeft, Lock } from 'lucide-react';
 import { UNITS, findById } from './lib/units';
 import type { Unit } from './lib/units';
 import { todayKey, puzzleNumber, msUntilNextUTCDay, formatCountdown } from './lib/daily';
-import { columnLabels } from './lib/challenge';
+import { columnLabels } from './lib/compare';
 import { fetchDailyState } from './lib/api';
 import type { DailyState, Mode } from './lib/api';
 import { buildShareImage } from './lib/shareImage';
@@ -124,9 +124,13 @@ export default function App() {
   // sync is in flight the newest guess may have no cells yet — skip those rows.
   const results: GuessResult[] = useMemo(() => {
     const rows = state?.rows ?? [];
-    return guesses
-      .map((unit, i) => ({ unit, cells: rows[i] }))
-      .filter((r): r is GuessResult => !!r.cells);
+    const lie = state?.reveal?.lieCells;
+    const out: GuessResult[] = [];
+    guesses.forEach((unit, i) => {
+      const cells = rows[i];
+      if (cells) out.push({ unit, cells, lieCell: lie?.[i] });
+    });
+    return out;
   }, [guesses, state]);
 
   // Challenge: mask the hidden columns while the round is unsolved.
@@ -278,16 +282,18 @@ export default function App() {
         {mode === 'challenge' && solved && state?.reveal && (
           <div className="mt-4 border border-line bg-surface px-4 py-3 text-[13px] leading-relaxed text-slate-300">
             <span className="font-semibold text-rose-300">{columnLabels([state.reveal.liar])[0]}</span> was the
-            lie this round, and{' '}
+            lie this round: the game showed it as{' '}
+            <span className="font-semibold text-rose-200">{state.reveal.shown}</span>, but it is really{' '}
+            <span className="font-semibold text-emerald-200">{state.reveal.real}</span>.{' '}
             <span className="font-semibold text-slate-200">{columnLabels(state.reveal.hidden).join(' and ')}</span>{' '}
-            {state.reveal.hidden.length === 1 ? 'was' : 'were'} hidden. The board below now shows every stat
-            truthfully.
+            {state.reveal.hidden.length === 1 ? 'was' : 'were'} hidden. The board shows every stat truthfully, with
+            what the lie had displayed under the {columnLabels([state.reveal.liar])[0]} column.
           </div>
         )}
 
         {/* guesses */}
         <div className="mt-3">
-          <GuessGrid results={results} hidden={hidden} />
+          <GuessGrid results={results} hidden={hidden} revealLiar={state?.reveal?.liar} />
         </div>
 
         <footer className="mt-14 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-4 font-mono text-[10px] uppercase tracking-widest text-slate-600">

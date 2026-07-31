@@ -13,7 +13,16 @@ export interface DailyState {
   hidden: string[];
   rows: Cell[][];
   answer: Unit | null;
-  reveal: { hidden: string[]; liar: string } | null;
+  reveal: {
+    hidden: string[];
+    liar: string;
+    /** Per-guess, the liar column cell the game showed during play (the lie). */
+    lieCells: Cell[];
+    /** The answer's faked value for the liar column, formatted for display. */
+    shown: string;
+    /** The answer's real value for the liar column, formatted for display. */
+    real: string;
+  } | null;
 }
 
 export async function fetchDailyState(mode: Mode, guesses: string[]): Promise<DailyState> {

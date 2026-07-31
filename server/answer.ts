@@ -20,7 +20,7 @@ const AVOID_RECENT_DAYS = 90;
 
 // 32-bit FNV-1a of the secret, folded into every seed. Changing the secret
 // reshuffles the entire schedule; keeping it stable keeps answers stable.
-function secretHash(secret: string): number {
+export function secretHash(secret: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < secret.length; i++) {
     h ^= secret.charCodeAt(i);

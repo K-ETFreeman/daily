@@ -1,13 +1,13 @@
-import type { Unit } from './units';
-import { UNITS } from './units';
-import { COLUMNS } from './compare';
-import { dayRng } from './daily';
+// Server-only challenge selection. Which two columns are hidden and which one
+// lies is decided here and folded into the same server secret that salts the
+// answer, so it cannot be reproduced from the public repo or the shipped bundle
+// by reading the date. The browser only ever learns the hidden column KEYS (to
+// draw locks) and, once solved, the reveal.
 
-// The daily-challenge twist: for a given UTC date, two attribute columns are
-// hidden (no clue given) and one visible column lies (its comparison is run
-// against a decoy value borrowed from another unit). Everything here is a pure
-// function of the date + the answer, so every player sees the same challenge
-// and it survives a refresh without needing to be stored.
+import { UNITS, type Unit } from '../src/lib/units';
+import { COLUMNS } from '../src/lib/compare';
+import { mulberry32, dayNumberOf } from '../src/lib/daily';
+import { secretHash } from './answer';
 
 export interface ChallengeConfig {
   /** Two column keys whose cells are masked. */
@@ -18,8 +18,8 @@ export interface ChallengeConfig {
   decoy: Record<string, unknown>;
 }
 
-const KIND = new Map(COLUMNS.map((c) => [c.key as string, c.kind]));
-const KEYS = COLUMNS.map((c) => c.key as string);
+const KIND = new Map(COLUMNS.map((c) => [String(c.key), c.kind]));
+const KEYS = COLUMNS.map((c) => String(c.key));
 
 // numbers within this fraction read as "close" in compare.ts; a numeric lie
 // must land outside it to actually mislead.
@@ -58,8 +58,19 @@ function shuffle<T>(rng: () => number, arr: T[]): T[] {
   return a;
 }
 
-export function challengeConfig(answer: Unit, d = new Date()): ChallengeConfig {
-  const order = shuffle(dayRng(d, 3), KEYS);
+// Per-day, per-salt RNG folded with the secret hash `h`. Stable for everyone on
+// a given UTC day, but not reproducible without the secret.
+function rng(day: number, salt: number, h: number): () => number {
+  return mulberry32(
+    (Math.imul(day + 1, 2166136261) ^ Math.imul(salt + 1, 3266489917) ^ 0x27d4eb2f ^ h) >>> 0
+  );
+}
+
+export function challengeConfig(answer: Unit, date: Date, secret: string): ChallengeConfig {
+  const h = secretHash(secret);
+  const day = dayNumberOf(date);
+
+  const order = shuffle(rng(day, 3, h), KEYS);
   const hidden = [order[0], order[1]];
   const rest = order.slice(2); // the 9 columns that stay visible
 
@@ -67,30 +78,24 @@ export function challengeConfig(answer: Unit, d = new Date()): ChallengeConfig {
   // has at least one other unit whose value is a genuine lie.
   let liar = rest[0];
   let decoyUnit: Unit | undefined;
-  for (const key of shuffle(dayRng(d, 5), rest)) {
+  for (const key of shuffle(rng(day, 5, h), rest)) {
     const cands = UNITS.filter(
       (u) => u.id !== answer.id && isLie(KIND.get(key), pluck(u, key), pluck(answer, key))
     );
     if (cands.length) {
       liar = key;
-      decoyUnit = cands[Math.floor(dayRng(d, 7)() * cands.length)];
+      decoyUnit = cands[Math.floor(rng(day, 7, h)() * cands.length)];
       break;
     }
   }
 
   const source = decoyUnit ?? answer; // fallback never hit with the real dataset
-  // The tech column reads two fields — the tech label for the match and techRank
-  // for the ↑/↓ arrow — so a tech lie must borrow BOTH from the same decoy, or
-  // the arrow (still computed from the real rank) contradicts the fake label and
-  // gives the lie away.
+  // The tech column reads two fields - the tech label for the match and techRank
+  // for the arrow - so a tech lie must borrow BOTH from the same decoy, or the
+  // arrow (from the real rank) contradicts the fake label and gives it away.
   const decoy =
     liar === 'tech'
       ? { tech: pluck(source, 'tech'), techRank: pluck(source, 'techRank') }
       : { [liar]: pluck(source, liar) };
   return { hidden, liar, decoy };
-}
-
-// Human labels for a set of column keys, returned in COLUMNS order.
-export function columnLabels(keys: string[]): string[] {
-  return COLUMNS.filter((c) => keys.includes(c.key as string)).map((c) => c.label);
 }
