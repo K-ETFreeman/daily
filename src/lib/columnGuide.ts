@@ -21,7 +21,7 @@ const DESC: Record<string, string> = {
   tech: "Tech tier. The arrow points toward the answer's tier; the ACU has no tier (—).",
   type: "Whether it's a mobile Unit, a Building, or a crab Egg.",
   domain:
-    "The unit's in-game layer, read from its icon background — not where it physically sits, so an Air Factory reads Air. Related layers (Land / Hover / Amphibious) score a partial (amber).",
+    "The unit's in-game layer, read from its icon background. Related layers (Land / Hover / Amphibious) score a partial (amber).",
   weapon: 'Weapon categories it carries — a unit can have several, or None.',
   produces: 'Resources it generates. (Factories build units but yield no resource here.)',
   role: 'What the unit is for — it can fill several roles at once.',
