@@ -77,8 +77,9 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
         return send(res, 400, { error: 'bad json' });
       }
       const mode: Mode = body.mode === 'challenge' ? 'challenge' : 'daily';
+      // No count cap: readBody's 1MB limit guards abuse; max ~407 real units.
       const guesses: string[] = Array.isArray(body.guesses)
-        ? body.guesses.filter((x): x is string => typeof x === 'string').slice(0, 200)
+        ? body.guesses.filter((x): x is string => typeof x === 'string')
         : [];
       const state = buildState(mode, new Date(), guesses, SECRET);
       return send(res, 200, state);
